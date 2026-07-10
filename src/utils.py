@@ -37,7 +37,7 @@ async def log_interaction(
                 f"in <#{interaction.channel_id}>. Options: `{extra_options}`"
             )
             await channel.send(msg)
-        except Exception as e:  # pylint: disable=broad-except
+        except (discord.DiscordException, OSError) as e:
             print(f"Failed to log to admin channel: {e}")
 
 

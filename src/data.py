@@ -54,7 +54,7 @@ class DataStore:
                 try:
                     with open(self.DATA_FILE, "r", encoding="utf-8") as f:
                         self.subscriptions = json.load(f)
-                except Exception as e:  # pylint: disable=broad-except
+                except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
                     print(f"Error loading subscriptions: {e}")
                     self.subscriptions = []
             else:
@@ -65,7 +65,7 @@ class DataStore:
                 try:
                     with open(self.SEEN_FILE, "r", encoding="utf-8") as f:
                         self.seen_posts = json.load(f)
-                except Exception as e:  # pylint: disable=broad-except
+                except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
                     print(f"Error loading seen posts cache: {e}")
                     self.seen_posts = {}
             else:
@@ -98,7 +98,7 @@ class DataStore:
             try:
                 self._safe_write(self.DATA_FILE, self.subscriptions)
                 print("Subscriptions data saved.")
-            except Exception as e:  # pylint: disable=broad-except
+            except (OSError, TypeError, ValueError) as e:
                 print(f"Failed to save subscriptions: {e}")
 
     def save_seen_posts(self) -> None:
@@ -107,7 +107,7 @@ class DataStore:
             try:
                 self._safe_write(self.SEEN_FILE, self.seen_posts)
                 print("Seen posts data saved.")
-            except Exception as e:  # pylint: disable=broad-except
+            except (OSError, TypeError, ValueError) as e:
                 print(f"Failed to save seen posts: {e}")
 
     # pylint: disable=too-many-arguments,too-many-positional-arguments

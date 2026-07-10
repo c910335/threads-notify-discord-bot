@@ -31,12 +31,8 @@ class ThreadsCommands(commands.Cog):
             interaction.channel_id
         )
         choices = []
-        seen = set()
         for sub in subs:
             u = sub["username"]
-            if u in seen:
-                continue
-            seen.add(u)
             display = data.db.get_display_name(u)
             label = f"{display} (@{u})"
             if current.lower() in u.lower() or current.lower() in display.lower():

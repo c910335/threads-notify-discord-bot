@@ -121,7 +121,7 @@ class ThreadsMonitor(commands.Cog):
                     f"Sent notification to channel {sub['channel_id']} "
                     f"for post {post['url']}"
                 )
-            except Exception as e:  # pylint: disable=broad-except
+            except (discord.DiscordException, OSError) as e:
                 print(f"Failed to send to channel {sub['channel_id']}: {e}")
 
     async def report_error(self, message: str) -> None:
@@ -139,7 +139,7 @@ class ThreadsMonitor(commands.Cog):
                     config.ADMIN_CHANNEL_ID
                 )
             await channel.send(message)
-        except Exception as e:  # pylint: disable=broad-except
+        except (discord.DiscordException, OSError) as e:
             print(f"Failed to report error to admin channel: {e}")
 
 

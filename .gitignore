@@ -5,6 +5,8 @@ __pycache__/
 tmp/
 config.py
 *.json
+.coverage
+htmlcov/
 
 
 
