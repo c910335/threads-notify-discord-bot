@@ -1,5 +1,7 @@
 # Threads Notify Discord Bot
 
+[![Python Unit Tests and Coverage](https://github.com/c910335/threads-notify-discord-bot/actions/workflows/python-tests.yml/badge.svg)](https://github.com/c910335/threads-notify-discord-bot/actions/workflows/python-tests.yml)
+
 A Discord bot for [Threads](https://www.threads.com) profile post notifications.
 
 ## Installation
