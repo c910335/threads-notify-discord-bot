@@ -1,10 +1,23 @@
+"""Scraping utility for public Threads profiles using Playwright."""
+
 import json
 import re
-from playwright.async_api import async_playwright
+from typing import Any
 
-def find_key_in_dict(obj, target_key):
-    """
-    Recursively find all values associated with target_key in a nested dict/list structure.
+from playwright import async_api
+
+import data
+
+
+def find_key_in_dict(obj: Any, target_key: str) -> list[Any]:
+    """Recursively finds all values associated with a target key in a dict/list.
+
+    Args:
+        obj: The nested dictionary or list structure to search.
+        target_key: The key string to look for.
+
+    Returns:
+        A list of all values associated with the target key.
     """
     results = []
     if isinstance(obj, dict):
@@ -18,9 +31,81 @@ def find_key_in_dict(obj, target_key):
             results.extend(find_key_in_dict(item, target_key))
     return results
 
-def extract_posts_from_html(html_content: str) -> list[dict]:
-    # Extract all application/json scripts
-    json_scripts = re.findall(r'<script[^>]*type="application/json"[^>]*>(.*?)</script>', html_content, re.DOTALL)
+
+def _extract_media(post_data: dict[str, Any]) -> list[str]:
+    """Helper to extract media candidate URLs (image/video) from a post."""
+    media_urls = []
+    # 1. Carousel media
+    carousel = post_data.get("carousel_media") or []
+    for c in carousel:
+        img_versions = c.get("image_versions2", {}).get("candidates", [])
+        if img_versions:
+            media_urls.append(img_versions[0].get("url"))
+
+    # 2. Single Image
+    if not media_urls:
+        img_versions = post_data.get("image_versions2", {}).get("candidates", [])
+        if img_versions:
+            media_urls.append(img_versions[0].get("url"))
+
+    # 3. Video
+    videos = post_data.get("video_versions") or []
+    if videos:
+        media_urls.append(videos[0].get("url"))
+
+    return media_urls
+
+
+def _parse_post(post_data: dict[str, Any]) -> data.PostDict | None:
+    """Helper to parse raw post dictionary into structured data."""
+    if not isinstance(post_data, dict):
+        return None
+    post_id = post_data.get("id")
+    if not post_id:
+        return None
+
+    code = post_data.get("code")
+    user = post_data.get("user", {})
+    username = user.get("username")
+    display_name = user.get("full_name") or username
+    timestamp = post_data.get("taken_at")
+
+    caption = post_data.get("caption") or {}
+    text = caption.get("text", "")
+
+    media_urls = _extract_media(post_data)
+
+    return {
+        "id": post_id,
+        "code": code,
+        "username": username,
+        "display_name": display_name,
+        "text": text,
+        "timestamp": timestamp,
+        "url": (
+            f"https://www.threads.com/@{username}/post/{code}"
+            if username and code
+            else None
+        ),
+        "media_urls": media_urls,
+    }
+
+
+def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
+    """Extracts post information from application/json blocks in the HTML content.
+
+    Args:
+        html_content: The fully rendered HTML page source.
+
+    Returns:
+        A list of parsed post dictionaries sorted by publication timestamp
+        descending.
+    """
+    json_scripts = re.findall(
+        r'<script[^>]*type="application/json"[^>]*>(.*?)</script>',
+        html_content,
+        re.DOTALL,
+    )
 
     unique_posts = {}
 
@@ -29,9 +114,8 @@ def extract_posts_from_html(html_content: str) -> list[dict]:
         if not script_content:
             continue
         try:
-            data = json.loads(script_content)
-            # Find all thread_items occurrences
-            thread_items_lists = find_key_in_dict(data, "thread_items")
+            data_dict = json.loads(script_content)
+            thread_items_lists = find_key_in_dict(data_dict, "thread_items")
 
             for items_list in thread_items_lists:
                 if not isinstance(items_list, list):
@@ -39,72 +123,41 @@ def extract_posts_from_html(html_content: str) -> list[dict]:
                 for item in items_list:
                     if not isinstance(item, dict) or "post" not in item:
                         continue
-                    post_data = item["post"]
-                    if not isinstance(post_data, dict):
-                        continue
-
-                    post_id = post_data.get("id")
-                    if not post_id:
-                        continue
-
-                    # Extract fields
-                    code = post_data.get("code")
-                    user = post_data.get("user", {})
-                    username = user.get("username")
-                    display_name = user.get("full_name") or username
-                    timestamp = post_data.get("taken_at")
-
-                    caption = post_data.get("caption") or {}
-                    text = caption.get("text", "")
-
-                    # Extract media if present
-                    media_urls = []
-                    # 1. Carousel media
-                    carousel = post_data.get("carousel_media") or []
-                    for c in carousel:
-                        img_versions = c.get("image_versions2", {}).get("candidates", [])
-                        if img_versions:
-                            media_urls.append(img_versions[0].get("url"))
-
-                    # 2. Single Image
-                    if not media_urls:
-                        img_versions = post_data.get("image_versions2", {}).get("candidates", [])
-                        if img_versions:
-                            media_urls.append(img_versions[0].get("url"))
-
-                    # 3. Video
-                    videos = post_data.get("video_versions") or []
-                    if videos:
-                        media_urls.append(videos[0].get("url"))
-
-                    unique_posts[post_id] = {
-                        "id": post_id,
-                        "code": code,
-                        "username": username,
-                        "display_name": display_name,
-                        "text": text,
-                        "timestamp": timestamp,
-                        "url": f"https://www.threads.com/@{username}/post/{code}" if username and code else None,
-                        "media_urls": media_urls
-                    }
-        except Exception:
+                    parsed = _parse_post(item["post"])
+                    if parsed:
+                        unique_posts[parsed["id"]] = parsed
+        except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
             pass
 
-    # Sort posts by timestamp descending
-    sorted_posts = sorted(unique_posts.values(), key=lambda x: x["timestamp"] or 0, reverse=True)
+    sorted_posts = sorted(
+        unique_posts.values(), key=lambda x: x["timestamp"] or 0, reverse=True
+    )
     return sorted_posts
 
-async def scrape_user_posts(username: str) -> list[dict]:
-    async with async_playwright() as p:
+
+async def scrape_user_posts(username: str) -> list[data.PostDict]:
+    """Launches Playwright headless Chromium and scrapes posts for a user profile.
+
+    Args:
+        username: The Threads username profile to scrape.
+
+    Returns:
+        A list of scraped post dictionaries belonging to the user.
+    """
+    async with async_api.async_playwright() as p:
         browser = await p.chromium.launch(
             headless=True,
-            args=["--disable-blink-features=AutomationControlled"]
+            args=["--disable-blink-features=AutomationControlled"],
         )
 
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            user_agent=(
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
             viewport={"width": 1280, "height": 1000},
-            locale="en-US"
+            locale="en-US",
         )
 
         page = await context.new_page()
@@ -118,12 +171,15 @@ async def scrape_user_posts(username: str) -> list[dict]:
             await page.keyboard.press("Escape")
             await page.wait_for_timeout(1000)
 
-            # Get HTML content
             content = await page.content()
-
             posts = extract_posts_from_html(content)
+
             # Filter posts to ensure we only return posts belonging to the target username
-            filtered_posts = [p for p in posts if p["username"] and p["username"].lower() == username.lower()]
+            filtered_posts = [
+                p
+                for p in posts
+                if p["username"] and p["username"].lower() == username.lower()
+            ]
             return filtered_posts
 
         finally:
