@@ -77,7 +77,7 @@ class ThreadsCommands(commands.Cog):
         overwrite: bool = False,
     ) -> None:
         """Subscribes the current channel to a Threads user's new posts."""
-        utils.log_interaction(
+        await utils.log_interaction(
             interaction,
             username=username,
             message=message,
@@ -143,7 +143,7 @@ class ThreadsCommands(commands.Cog):
         self, interaction: discord.Interaction, username: str
     ) -> None:
         """Unsubscribes the current channel from a Threads user's posts."""
-        utils.log_interaction(interaction, username=username)
+        await utils.log_interaction(interaction, username=username)
         success = data.db.remove_subscription(username, interaction.channel_id)
 
         if success:
@@ -175,7 +175,7 @@ class ThreadsCommands(commands.Cog):
     @app_commands.default_permissions()
     async def list_subs(self, interaction: discord.Interaction) -> None:
         """Lists active subscription configurations in the channel."""
-        utils.log_interaction(interaction)
+        await utils.log_interaction(interaction)
         subs: list[data.SubscriptionDict] = data.db.list_subscriptions(
             interaction.channel_id
         )
@@ -212,7 +212,7 @@ class ThreadsCommands(commands.Cog):
         self, interaction: discord.Interaction, username: str, silent: bool
     ) -> None:
         """Manually scrapes and outputs a test message using active templates."""
-        utils.log_interaction(interaction, username=username, silent=silent)
+        await utils.log_interaction(interaction, username=username, silent=silent)
         await interaction.response.defer(ephemeral=silent)
         username = username.strip().lower()
 

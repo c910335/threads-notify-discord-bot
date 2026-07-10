@@ -4,11 +4,14 @@ from typing import Any
 
 import discord
 
+import config
 import data
 
 
-def log_interaction(interaction: discord.Interaction, **extra_options: Any) -> None:
-    """Logs slash command invocations to console.
+async def log_interaction(
+    interaction: discord.Interaction, **extra_options: Any
+) -> None:
+    """Logs slash command invocations to console and admin channel.
 
     Args:
         interaction: The Discord interaction object.
@@ -20,6 +23,22 @@ def log_interaction(interaction: discord.Interaction, **extra_options: Any) -> N
         f"{interaction.user.name}@{interaction.channel_id}{server_part}: "
         f"/{interaction.command.name} {options_str}"
     )
+
+    if config.ADMIN_CHANNEL_ID != 0:
+        try:
+            channel = interaction.client.get_channel(config.ADMIN_CHANNEL_ID)
+            if not channel:
+                channel = await interaction.client.fetch_channel(
+                    config.ADMIN_CHANNEL_ID
+                )
+            msg = (
+                f"**[Command Log]** {interaction.user.name} "
+                f"({interaction.user.mention}) ran `/{interaction.command.name}` "
+                f"in <#{interaction.channel_id}>. Options: `{extra_options}`"
+            )
+            await channel.send(msg)
+        except Exception as e:  # pylint: disable=broad-except
+            print(f"Failed to log to admin channel: {e}")
 
 
 def format_notification(
