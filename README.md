@@ -45,7 +45,7 @@ cp src/config_sample.py src/config.py
 1. Run the bot.
 
 ```sh
-.venv/bin/python src/main.py
+python src/main.py
 ```
 
 2. Invite the bot to your server using the installation link generated from the [Discord Developer Portal](https://discord.com/developers/applications/).
@@ -57,7 +57,7 @@ cp src/config_sample.py src/config.py
 Run the unit test suite:
 
 ```sh
-PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -p "*_test.py" -t .
+PYTHONPATH=src python -m unittest discover -s tests -p "*_test.py" -t .
 ```
 
 ## Commands
