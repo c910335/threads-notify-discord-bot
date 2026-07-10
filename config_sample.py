@@ -24,4 +24,6 @@ NOTIFICATION_MESSAGE_TEMPLATES = [
     "{name} 發布了新貼文： {url}",
     "{name} posted a new update: {url}",
     "{mention} {name} 發布了新貼文： {url}",
+    "{mention} **{name}** 發文囉！\n{url}\n>>> {text}",
+    "**{name}** posted: {text}\n{url}",
 ]

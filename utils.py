@@ -66,6 +66,7 @@ def format_notification(
 
     msg = (
         message_template.replace("{name}", display_name)
+        .replace("{text}", post.get("text") or "")
         .replace("{url}", url)
         .replace("{mention}", mention_str)
     )

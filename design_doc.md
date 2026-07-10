@@ -66,7 +66,7 @@ Adapting the slash-command interface to Threads:
 
 - `/subscribe`: Subscribe to a Threads user profile for the current channel.
   - `username` (String): The username of the Threads profile (e.g., `c910335`).
-  - `message` (String): The template message to send (supports `{name}`, `{url}`, `{mention}`).
+  - `message` (String): The template message to send (supports `{name}`, `{text}`, `{url}`, `{mention}`).
   - `mention` (Mentionable, Optional): The user or role to ping.
   - `overwrite` (Boolean, Optional): Overwrite existing subscription for this channel (defaults to `False`).
 - `/unsubscribe`: Remove a subscription.

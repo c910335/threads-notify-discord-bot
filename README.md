@@ -58,7 +58,7 @@ All commands are restricted to server administrators.
 
 - `/subscribe`: Subscribe to a Threads user profile for the current channel.
   - `username` (String): The username of the Threads profile (e.g. `c910335`).
-  - `message` (String): The message template to send when the user posts (supports `{name}`, `{url}`, `{mention}`, autocomplete templates available).
+  - `message` (String): The message template to send when the user posts (supports `{name}`, `{text}`, `{url}`, `{mention}`, autocomplete templates available).
   - `mention` (Mentionable, Optional): The user or role to notify.
   - `overwrite` (Boolean, Optional): Whether to overwrite an existing subscription (defaults to `False`).
 - `/unsubscribe`: Unsubscribe from a Threads profile for the current channel.

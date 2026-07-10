@@ -61,7 +61,7 @@ class ThreadsCommands(commands.Cog):
     @app_commands.default_permissions()
     @app_commands.describe(
         username="The Threads username to subscribe to (e.g. c910335)",
-        message="Notification message template (supports {name}, {url}, {mention})",
+        message="Notification message template (supports {name}, {text}, {url}, {mention})",
         mention="The role or user to notify when a new post is found",
         overwrite=(
             "Overwrite the existing subscription if one already exists (default:"
