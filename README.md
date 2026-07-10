@@ -36,8 +36,8 @@ sudo pacman -S --needed nspr nss atk at-spi2-core libxcomposite libxdamage libxr
 4. Edit the configuration file.
 
 ```sh
-cp config_sample.py config.py
-# Set your DISCORD_TOKEN and ADMIN_CHANNEL_ID in config.py
+cp src/config_sample.py src/config.py
+# Set your DISCORD_TOKEN and ADMIN_CHANNEL_ID in src/config.py
 ```
 
 ## Usage
@@ -45,12 +45,20 @@ cp config_sample.py config.py
 1. Run the bot.
 
 ```sh
-python main.py
+.venv/bin/python src/main.py
 ```
 
 2. Invite the bot to your server using the installation link generated from the [Discord Developer Portal](https://discord.com/developers/applications/).
 
 3. Use the slash commands in your server.
+
+## Testing
+
+Run the unit test suite:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -p "*_test.py" -t .
+```
 
 ## Commands
 
