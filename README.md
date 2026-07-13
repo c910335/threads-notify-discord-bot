@@ -58,14 +58,6 @@ python src/main.py
 
 3. Use the slash commands in your server.
 
-## Testing
-
-Run the unit test suite:
-
-```sh
-PYTHONPATH=src python -m unittest discover -s tests -p "*_test.py" -t .
-```
-
 ## Commands
 
 All commands are restricted to server administrators.
@@ -81,6 +73,14 @@ All commands are restricted to server administrators.
   - `username` (String): The Threads username to send a test notification for.
   - `silent` (Boolean): If true, the test notification will be visible only to you (ephemeral).
 - `/list`: List the active subscriptions for the current channel (only visible to the command caller).
+
+## Testing
+
+Run the unit test suite:
+
+```sh
+PYTHONPATH=src python -m unittest discover -s tests -p "*_test.py" -t .
+```
 
 ## Contributing
 
