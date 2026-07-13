@@ -35,11 +35,15 @@ Note: If you are running on Linux (e.g. Arch Linux), you may need to install add
 sudo pacman -S --needed nspr nss atk at-spi2-core libxcomposite libxdamage libxrandr libxkbcommon
 ```
 
-4. Edit the configuration file.
+4. Configure environment variables.
 
-```sh
-cp src/config_sample.py src/config.py
-# Set your DISCORD_TOKEN and ADMIN_CHANNEL_ID in src/config.py
+Create a `.env` file in the project root directory and populate your configuration settings:
+
+```env
+TNDB_DISCORD_TOKEN=YOUR_DISCORD_TOKEN_HERE
+TNDB_ADMIN_CHANNEL_ID=0
+TNDB_HEARTBEAT_DELAY_SECONDS=300
+TNDB_CHECK_DELAY_SECONDS=5
 ```
 
 ## Usage

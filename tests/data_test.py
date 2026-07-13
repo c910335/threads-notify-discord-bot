@@ -14,6 +14,7 @@ class DataStoreTest(unittest.TestCase):
         """Sets up custom testing file paths and initializes a fresh store."""
         data.DataStore.DATA_FILE = "test_data.json"
         data.DataStore.SEEN_FILE = "test_seen_posts.json"
+        data.DataStore.DISPLAY_NAMES_FILE = "test_display_names.json"
         self._cleanup()
         self.store = data.DataStore()
 
@@ -23,7 +24,7 @@ class DataStoreTest(unittest.TestCase):
 
     def _cleanup(self) -> None:
         """Helper to delete test database files."""
-        for filename in ["test_data.json", "test_seen_posts.json"]:
+        for filename in ["test_data.json", "test_seen_posts.json", "test_display_names.json"]:
             if os.path.exists(filename):
                 try:
                     os.remove(filename)
@@ -42,11 +43,14 @@ class DataStoreTest(unittest.TestCase):
             f.write("invalid json")
         with open("test_seen_posts.json", "w", encoding="utf-8") as f:
             f.write("invalid json")
+        with open("test_display_names.json", "w", encoding="utf-8") as f:
+            f.write("invalid json")
 
         # Loading should recover and load empty datasets
         store = data.DataStore()
         self.assertEqual(store.subscriptions, [])
         self.assertEqual(store.seen_posts, {})
+        self.assertEqual(store.display_names, {})
 
     def test_safe_write_handles_exceptions(self) -> None:
         """Verifies that safe writing handles write errors without corrupting file."""
@@ -95,10 +99,12 @@ class DataStoreTest(unittest.TestCase):
         """Verifies removing subscription succeeds if it exists."""
         self.store.add_subscription("c910335", 111, 222, "msg", "", False)
         self.store.init_user_seen_posts("c910335", ["post1"])
+        self.store.update_display_name("c910335", "達人")
         removed = self.store.remove_subscription("c910335", 111)
         self.assertTrue(removed)
         self.assertEqual(len(self.store.list_subscriptions(111)), 0)
         self.assertNotIn("c910335", self.store.seen_posts)
+        self.assertEqual(self.store.get_display_name("c910335"), "c910335")
 
     def test_remove_subscription_fail_if_not_present(self) -> None:
         """Verifies removing subscription fails if it does not exist."""
@@ -124,13 +130,17 @@ class DataStoreTest(unittest.TestCase):
         self.assertTrue(self.store.is_post_seen("newuser", "postA"))
 
     def test_display_name_caching(self) -> None:
-        """Verifies getting and updating username display names."""
+        """Verifies getting, updating, and loading username display names from disk."""
         # Default name when uncached is username itself
         self.assertEqual(self.store.get_display_name("c910335"), "c910335")
 
         # Update cache
         self.store.update_display_name("c910335", "達人")
         self.assertEqual(self.store.get_display_name("c910335"), "達人")
+
+        # Create a new store instance to verify it loads from display_names.json on disk
+        new_store = data.DataStore()
+        self.assertEqual(new_store.get_display_name("c910335"), "達人")
 
     def test_get_subscriptions_for_user(self) -> None:
         """Verifies retrieving subscriptions matching a username across channels."""
@@ -142,11 +152,12 @@ class DataStoreTest(unittest.TestCase):
         self.assertEqual(len(subs), 2)
 
     def test_save_failures_dont_crash(self) -> None:
-        """Verifies save failures in subscriptions or seen cache don't raise exceptions."""
+        """Verifies save failures in databases don't raise exceptions."""
         with mock.patch.object(self.store, "_safe_write", side_effect=OSError("Disk Full")):
             # These should catch and print without raising exceptions
             self.store.save_subscriptions()
             self.store.save_seen_posts()
+            self.store.save_display_names()
 
     def test_get_all_sub_usernames(self) -> None:
         """Verifies retrieval of all unique subscribed usernames."""

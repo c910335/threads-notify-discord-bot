@@ -36,6 +36,7 @@ class DataStore:
 
     DATA_FILE = "data.json"
     SEEN_FILE = "seen_posts.json"
+    DISPLAY_NAMES_FILE = "display_names.json"
 
     def __init__(self):
         """Initializes the locks and internal storage caches."""
@@ -70,6 +71,17 @@ class DataStore:
                     self.seen_posts = {}
             else:
                 self.seen_posts = {}
+
+            # Load Display Names Cache
+            if os.path.exists(self.DISPLAY_NAMES_FILE):
+                try:
+                    with open(self.DISPLAY_NAMES_FILE, "r", encoding="utf-8") as f:
+                        self.display_names = json.load(f)
+                except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
+                    print(f"Error loading display names cache: {e}")
+                    self.display_names = {}
+            else:
+                self.display_names = {}
 
     def _safe_write(self, filepath: str, data: Any) -> None:
         """Atomically writes data to a file by writing to a temporary file first.
@@ -109,6 +121,15 @@ class DataStore:
                 print("Seen posts data saved.")
             except (OSError, TypeError, ValueError) as e:
                 print(f"Failed to save seen posts: {e}")
+
+    def save_display_names(self) -> None:
+        """Saves current display names cache to display_names.json."""
+        with self.lock:
+            try:
+                self._safe_write(self.DISPLAY_NAMES_FILE, self.display_names)
+                print("Display names data saved.")
+            except (OSError, TypeError, ValueError) as e:
+                print(f"Failed to save display names: {e}")
 
     # pylint: disable=too-many-arguments,too-many-positional-arguments
     def add_subscription(
@@ -183,11 +204,15 @@ class DataStore:
         if len(self.subscriptions) < original_len:
             self.save_subscriptions()
 
-            # Clean up seen posts if no channels subscribe to this user anymore
+            # Clean up seen posts and display names if no channels subscribe to this user anymore
             all_usernames = {sub["username"] for sub in self.subscriptions}
-            if username not in all_usernames and username in self.seen_posts:
-                del self.seen_posts[username]
-                self.save_seen_posts()
+            if username not in all_usernames:
+                if username in self.seen_posts:
+                    del self.seen_posts[username]
+                    self.save_seen_posts()
+                if username in self.display_names:
+                    del self.display_names[username]
+                    self.save_display_names()
 
             return True
         return False
@@ -276,7 +301,10 @@ class DataStore:
             username: The Threads username.
             display_name: The display name text.
         """
-        self.display_names[username.strip().lower()] = display_name
+        username_lower = username.strip().lower()
+        if self.display_names.get(username_lower) != display_name:
+            self.display_names[username_lower] = display_name
+            self.save_display_names()
 
     def get_display_name(self, username: str) -> str:
         """Gets the cached display name or falls back to the username itself.

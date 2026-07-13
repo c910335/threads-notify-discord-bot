@@ -33,15 +33,11 @@ jobs:
       run: |
         python -m playwright install chromium --with-deps
 
-    - name: Configure environment settings
-      run: |
-        cp src/config_sample.py src/config.py
-
     - name: Run unit tests with coverage
       env:
         PYTHONPATH: src
       run: |
-        coverage run --source=src --omit=src/config_sample.py -m unittest discover -s tests -p "*_test.py" -t .
+        coverage run --source=src -m unittest discover -s tests -p "*_test.py" -t .
         coverage report -m
 
     - name: Run Pylint linter

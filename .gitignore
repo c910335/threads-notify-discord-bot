@@ -3,10 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 tmp/
-config.py
 *.json
 .coverage
 htmlcov/
+.env
 
 
 
