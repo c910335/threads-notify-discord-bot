@@ -46,8 +46,8 @@ class DataStoreTest(unittest.TestCase):
 
     def test_safe_write_handles_exceptions(self) -> None:
         """Verifies that safe writing handles write errors without corrupting file."""
-        # Make a write attempt raise OSError on move
-        with mock.patch("shutil.move", side_effect=OSError("Disk Full")):
+        # Make a write attempt raise OSError on rename
+        with mock.patch("os.replace", side_effect=OSError("Disk Full")):
             with self.assertRaises(OSError):
                 self.store._safe_write(data.DataStore.DATA_FILE, {"test": 123})
 

@@ -2,7 +2,6 @@
 
 import json
 import os
-import shutil
 import tempfile
 import threading
 from typing import Any, TypedDict
@@ -96,9 +95,10 @@ class DataStore:
         ) as tf:
             json.dump(data, tf, indent=2, ensure_ascii=False)
             tf.flush()
+            os.fsync(tf.fileno())
             temp_path = tf.name
         try:
-            shutil.move(temp_path, filepath)
+            os.replace(temp_path, filepath)
         except Exception as e:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
