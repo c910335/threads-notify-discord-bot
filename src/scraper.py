@@ -90,6 +90,22 @@ def _parse_post(post_data: dict[str, Any]) -> data.PostDict | None:
     }
 
 
+def _get_numerical_id(post: data.PostDict) -> int:
+    """Helper to extract numerical sequence ID prefix from a post ID.
+
+    Args:
+        post: The parsed post dictionary.
+
+    Returns:
+        The extracted numerical sequence ID as an integer, or 0 if not found.
+    """
+    post_id = post.get("id") or ""
+    parts = post_id.split("_")
+    if parts and parts[0].isdigit():
+        return int(parts[0])
+    return 0
+
+
 def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
     """Extracts post information from application/json blocks in the HTML content.
 
@@ -129,7 +145,9 @@ def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
             pass
 
     sorted_posts = sorted(
-        unique_posts.values(), key=lambda x: x["timestamp"] or 0, reverse=True
+        unique_posts.values(),
+        key=lambda x: (x["timestamp"] or 0, _get_numerical_id(x)),
+        reverse=True,
     )
     return sorted_posts
 

@@ -17,17 +17,17 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
         mock_playwright.chromium = mock.MagicMock()
         mock_playwright.chromium.launch = mock.AsyncMock(return_value=mock_browser)
         mock_browser.close = mock.AsyncMock()
+        mock_playwright.stop = mock.AsyncMock()
 
         async_pw_mock = mock.MagicMock()
         async_pw_mock.start = mock.AsyncMock(return_value=mock_playwright)
-        async_pw_mock.stop = mock.AsyncMock()
 
         mgr = browser.Browser()
         with mock.patch("browser.async_api.async_playwright", return_value=async_pw_mock):
             # 1. Start browser
             await mgr.start()
             self.assertIsNotNone(mgr._raw_browser)
-            self.assertIsNotNone(mgr._playwright_context)
+            self.assertIsNotNone(mgr._playwright)
             mock_playwright.chromium.launch.assert_called_once()
             async_pw_mock.start.assert_called_once()
 
@@ -38,9 +38,9 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
             # 2. Stop browser
             await mgr.close()
             self.assertIsNone(mgr._raw_browser)
-            self.assertIsNone(mgr._playwright_context)
+            self.assertIsNone(mgr._playwright)
             mock_browser.close.assert_called_once()
-            async_pw_mock.stop.assert_called_once()
+            mock_playwright.stop.assert_called_once()
 
             # Stopping again should be a no-op
             await mgr.close()

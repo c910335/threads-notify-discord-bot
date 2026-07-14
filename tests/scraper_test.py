@@ -143,6 +143,51 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(posts[0]["id"], "post_newer")
         self.assertEqual(posts[1]["id"], "post_older")
 
+    def test_extract_posts_with_identical_timestamps(self) -> None:
+        """Verifies sorting by numerical ID when timestamps are identical."""
+        mock_html = """
+        <html>
+            <body>
+                <script type="application/json">
+                {
+                    "thread_items": [
+                        {
+                            "post": {
+                                "id": "1000_123",
+                                "code": "Code1",
+                                "taken_at": 1500000000,
+                                "user": {"username": "tester"},
+                                "caption": {"text": "Older post in thread"}
+                            }
+                        },
+                        {
+                            "post": {
+                                "id": "2000_123",
+                                "code": "Code2",
+                                "taken_at": 1500000000,
+                                "user": {"username": "tester"},
+                                "caption": {"text": "Newer post in thread"}
+                            }
+                        }
+                    ]
+                }
+                </script>
+            </body>
+        </html>
+        """
+        posts = scraper.extract_posts_from_html(mock_html)
+        self.assertEqual(len(posts), 2)
+        # Should be sorted newest first (i.e., ID 2000 first)
+        self.assertEqual(posts[0]["id"], "2000_123")
+        self.assertEqual(posts[1]["id"], "1000_123")
+
+    def test_get_numerical_id(self) -> None:
+        """Verifies _get_numerical_id parsing behavior."""
+        self.assertEqual(scraper._get_numerical_id({"id": "12345_678"}), 12345)  # pylint: disable=protected-access
+        self.assertEqual(scraper._get_numerical_id({"id": "abc_678"}), 0)  # pylint: disable=protected-access
+        self.assertEqual(scraper._get_numerical_id({"id": ""}), 0)  # pylint: disable=protected-access
+        self.assertEqual(scraper._get_numerical_id({}), 0)  # pylint: disable=protected-access
+
     async def test_scrape_user_posts_with_mock_playwright(self) -> None:
         """Verifies scrape_user_posts lifecycle using context borrowing."""
         mock_browser = mock.AsyncMock()
