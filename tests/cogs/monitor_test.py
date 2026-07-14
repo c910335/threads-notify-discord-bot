@@ -1,6 +1,7 @@
 # pylint: disable=protected-access,duplicate-code,missing-module-docstring
 
 import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -17,9 +18,16 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         """Sets up custom testing file paths and mock bot context."""
-        data.DataStore.DATA_FILE = "test_monitor_data.json"
-        data.DataStore.SEEN_FILE = "test_monitor_seen.json"
-        self._cleanup()
+        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())  # pylint: disable=consider-using-with
+        data.DataStore.DATA_FILE = os.path.join(
+            self.test_dir, "test_monitor_data.json"
+        )
+        data.DataStore.SEEN_FILE = os.path.join(
+            self.test_dir, "test_monitor_seen.json"
+        )
+        data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
+            self.test_dir, "test_monitor_display_names.json"
+        )
 
         # Initialize clean data store
         self.db = data.db
@@ -33,19 +41,6 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         # Prevent loop from starting upon instantiation
         with mock.patch("discord.ext.tasks.Loop.start"):
             self.monitor_cog = monitor.ThreadsMonitor(self.mock_bot)
-
-    def tearDown(self) -> None:
-        """Cleans up testing JSON database files."""
-        self._cleanup()
-
-    def _cleanup(self) -> None:
-        """Helper to delete test database files."""
-        for filename in ["test_monitor_data.json", "test_monitor_seen.json"]:
-            if os.path.exists(filename):
-                try:
-                    os.remove(filename)
-                except OSError:
-                    pass
 
     async def test_monitor_check_profile_new_post(self) -> None:
         """Verifies background monitor task detects, caches, and alerts on a new post."""

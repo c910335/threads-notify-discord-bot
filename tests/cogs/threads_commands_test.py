@@ -1,6 +1,7 @@
 # pylint: disable=protected-access,duplicate-code,missing-module-docstring
 
 import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -17,9 +18,16 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         """Sets up custom testing file paths and mock bot context."""
-        data.DataStore.DATA_FILE = "test_commands_data.json"
-        data.DataStore.SEEN_FILE = "test_commands_seen.json"
-        self._cleanup()
+        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())  # pylint: disable=consider-using-with
+        data.DataStore.DATA_FILE = os.path.join(
+            self.test_dir, "test_commands_data.json"
+        )
+        data.DataStore.SEEN_FILE = os.path.join(
+            self.test_dir, "test_commands_seen.json"
+        )
+        data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
+            self.test_dir, "test_commands_display_names.json"
+        )
 
         # Initialize clean data store
         self.db = data.db
@@ -31,19 +39,6 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         self.mock_bot = mock.MagicMock(spec=commands.Bot)
         self.mock_bot.browser = mock.MagicMock()
         self.commands_cog = threads_commands.ThreadsCommands(self.mock_bot)
-
-    def tearDown(self) -> None:
-        """Cleans up testing JSON database files."""
-        self._cleanup()
-
-    def _cleanup(self) -> None:
-        """Helper to delete test database files."""
-        for filename in ["test_commands_data.json", "test_commands_seen.json"]:
-            if os.path.exists(filename):
-                try:
-                    os.remove(filename)
-                except OSError:
-                    pass
 
     async def test_subscribe_command_success(self) -> None:
         """Verifies /subscribe command registers a new subscription successfully."""

@@ -1,6 +1,7 @@
 # pylint: disable=protected-access,duplicate-code,missing-module-docstring
 
 import os
+import tempfile
 import unittest
 from unittest import mock
 
@@ -12,24 +13,15 @@ class DataStoreTest(unittest.TestCase):
 
     def setUp(self) -> None:
         """Sets up custom testing file paths and initializes a fresh store."""
-        data.DataStore.DATA_FILE = "test_data.json"
-        data.DataStore.SEEN_FILE = "test_seen_posts.json"
-        data.DataStore.DISPLAY_NAMES_FILE = "test_display_names.json"
-        self._cleanup()
+        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())  # pylint: disable=consider-using-with
+        data.DataStore.DATA_FILE = os.path.join(self.test_dir, "test_data.json")
+        data.DataStore.SEEN_FILE = os.path.join(
+            self.test_dir, "test_seen_posts.json"
+        )
+        data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
+            self.test_dir, "test_display_names.json"
+        )
         self.store = data.DataStore()
-
-    def tearDown(self) -> None:
-        """Cleans up testing JSON database files."""
-        self._cleanup()
-
-    def _cleanup(self) -> None:
-        """Helper to delete test database files."""
-        for filename in ["test_data.json", "test_seen_posts.json", "test_display_names.json"]:
-            if os.path.exists(filename):
-                try:
-                    os.remove(filename)
-                except OSError:
-                    pass
 
     def test_load_empty_or_missing_files(self) -> None:
         """Verifies that missing files are handled gracefully during loading."""
@@ -39,11 +31,11 @@ class DataStoreTest(unittest.TestCase):
     def test_load_corrupt_files_handles_gracefully(self) -> None:
         """Verifies recovery and fallback behavior when files contain invalid JSON."""
         # Create invalid files on disk
-        with open("test_data.json", "w", encoding="utf-8") as f:
+        with open(data.DataStore.DATA_FILE, "w", encoding="utf-8") as f:
             f.write("invalid json")
-        with open("test_seen_posts.json", "w", encoding="utf-8") as f:
+        with open(data.DataStore.SEEN_FILE, "w", encoding="utf-8") as f:
             f.write("invalid json")
-        with open("test_display_names.json", "w", encoding="utf-8") as f:
+        with open(data.DataStore.DISPLAY_NAMES_FILE, "w", encoding="utf-8") as f:
             f.write("invalid json")
 
         # Loading should recover and load empty datasets
@@ -57,7 +49,9 @@ class DataStoreTest(unittest.TestCase):
         # Make a write attempt raise OSError on move
         with mock.patch("shutil.move", side_effect=OSError("Disk Full")):
             with self.assertRaises(OSError):
-                self.store._safe_write("test_data.json", {"test": 123})  # pylint: disable=protected-access
+                self.store._safe_write(
+                    data.DataStore.DATA_FILE, {"test": 123}
+                )  # pylint: disable=protected-access
 
     def test_add_subscription_creates_new(self) -> None:
         """Verifies that adding a new subscription stores it correctly."""
