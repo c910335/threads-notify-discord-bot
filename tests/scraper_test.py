@@ -144,51 +144,76 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(posts[1]["id"], "post_older")
 
     async def test_scrape_user_posts_with_mock_playwright(self) -> None:
-        """Verifies scrape_user_posts lifecycle using mock Playwright chromium browser."""
-        mock_playwright = mock.MagicMock()
-        mock_browser = mock.MagicMock()
+        """Verifies scrape_user_posts lifecycle using context borrowing."""
+        mock_browser = mock.AsyncMock()
         mock_context = mock.MagicMock()
         mock_page = mock.MagicMock()
-
-        mock_playwright.chromium = mock.MagicMock()
-        mock_playwright.chromium.launch = mock.AsyncMock(return_value=mock_browser)
-        mock_browser.new_context = mock.AsyncMock(return_value=mock_context)
+        mock_browser.new_context.return_value = mock_context
         mock_context.new_page = mock.AsyncMock(return_value=mock_page)
+        mock_context.__aenter__ = mock.AsyncMock(return_value=mock_context)
+        mock_context.__aexit__ = mock.AsyncMock()
 
         mock_page.goto = mock.AsyncMock()
         mock_page.keyboard = mock.MagicMock()
         mock_page.keyboard.press = mock.AsyncMock()
+        mock_page.wait_for_selector = mock.AsyncMock()
         mock_page.wait_for_timeout = mock.AsyncMock()
         mock_page.content = mock.AsyncMock(return_value="<html>Mock HTML</html>")
-        mock_browser.close = mock.AsyncMock()
+        mock_page.close = mock.AsyncMock()
 
-        # Mock the context manager __aenter__ and __aexit__
-        async_pw_mock = mock.MagicMock()
-        async_pw_mock.__aenter__.return_value = mock_playwright
+        with mock.patch("scraper.extract_posts_from_html") as mock_extract:
+            mock_extract.return_value = [
+                {
+                    "id": "123",
+                    "code": "Code123",
+                    "username": "tester",
+                    "display_name": "Test User",
+                    "text": "Hello",
+                    "timestamp": 1600000000,
+                    "url": "https://www.threads.com/@tester/post/Code123",
+                    "media_urls": [],
+                }
+            ]
+            posts = await scraper.scrape_user_posts(mock_browser, "tester")
+            self.assertEqual(len(posts), 1)
+            self.assertEqual(posts[0]["username"], "tester")
+            mock_browser.new_context.assert_called_once()
+            mock_page.goto.assert_called_once_with(
+                "https://www.threads.com/@tester",
+                wait_until="load",
+                timeout=30000,
+            )
+            mock_page.wait_for_timeout.assert_called_once_with(500)
+            mock_page.close.assert_called_once()
 
-        with mock.patch("scraper.async_api.async_playwright", return_value=async_pw_mock):
-            with mock.patch("scraper.extract_posts_from_html") as mock_extract:
-                mock_extract.return_value = [
-                    {
-                        "id": "123",
-                        "code": "Code123",
-                        "username": "tester",
-                        "display_name": "Test User",
-                        "text": "Hello",
-                        "timestamp": 1600000000,
-                        "url": "https://www.threads.com/@tester/post/Code123",
-                        "media_urls": [],
-                    }
-                ]
-                posts = await scraper.scrape_user_posts("tester")
-                self.assertEqual(len(posts), 1)
-                self.assertEqual(posts[0]["username"], "tester")
-                mock_page.goto.assert_called_once_with(
-                    "https://www.threads.com/@tester",
-                    wait_until="load",
-                    timeout=30000,
-                )
-                mock_browser.close.assert_called_once()
+    async def test_scrape_user_posts_handles_selector_timeout(self) -> None:
+        """Verifies scrape_user_posts falls back to wait_for_timeout on selector timeout."""
+        mock_browser = mock.AsyncMock()
+        mock_context = mock.MagicMock()
+        mock_page = mock.MagicMock()
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page = mock.AsyncMock(return_value=mock_page)
+        mock_context.__aenter__ = mock.AsyncMock(return_value=mock_context)
+        mock_context.__aexit__ = mock.AsyncMock()
+
+        mock_page.goto = mock.AsyncMock()
+        mock_page.keyboard = mock.MagicMock()
+        mock_page.keyboard.press = mock.AsyncMock()
+        mock_page.wait_for_selector = mock.AsyncMock(side_effect=Exception("Timeout"))
+        mock_page.wait_for_timeout = mock.AsyncMock()
+        mock_page.content = mock.AsyncMock(return_value="<html>Mock HTML</html>")
+        mock_page.close = mock.AsyncMock()
+
+        with mock.patch("scraper.extract_posts_from_html", return_value=[]):
+            posts = await scraper.scrape_user_posts(mock_browser, "tester")
+            self.assertEqual(posts, [])
+            mock_browser.new_context.assert_called_once()
+            mock_page.wait_for_selector.assert_called_once()
+            self.assertEqual(
+                mock_page.wait_for_timeout.call_args_list,
+                [mock.call(1000), mock.call(500)],
+            )
+            mock_page.close.assert_called_once()
 
     def test_parser_defensive_checks(self) -> None:
         """Verifies defensive checks and invalid payloads handling in parser."""

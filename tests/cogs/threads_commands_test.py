@@ -29,6 +29,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
 
         # Mock Bot
         self.mock_bot = mock.MagicMock(spec=commands.Bot)
+        self.mock_bot.browser = mock.MagicMock()
         self.commands_cog = threads_commands.ThreadsCommands(self.mock_bot)
 
     def tearDown(self) -> None:

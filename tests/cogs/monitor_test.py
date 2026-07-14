@@ -29,6 +29,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
 
         # Mock Bot
         self.mock_bot = mock.MagicMock(spec=commands.Bot)
+        self.mock_bot.browser = mock.MagicMock()
         # Prevent loop from starting upon instantiation
         with mock.patch("discord.ext.tasks.Loop.start"):
             self.monitor_cog = monitor.ThreadsMonitor(self.mock_bot)

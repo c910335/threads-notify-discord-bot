@@ -4,8 +4,7 @@ import json
 import re
 from typing import Any
 
-from playwright import async_api
-
+import browser
 import data
 
 
@@ -135,41 +134,34 @@ def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
     return sorted_posts
 
 
-async def scrape_user_posts(username: str) -> list[data.PostDict]:
+async def scrape_user_posts(
+    browser_inst: browser.Browser, username: str
+) -> list[data.PostDict]:
     """Launches Playwright headless Chromium and scrapes posts for a user profile.
 
     Args:
+        browser_inst: The shared Browser instance to borrow contexts from.
         username: The Threads username profile to scrape.
 
     Returns:
         A list of scraped post dictionaries belonging to the user.
     """
-    async with async_api.async_playwright() as p:
-        browser = await p.chromium.launch(
-            headless=True,
-            args=["--disable-blink-features=AutomationControlled"],
-        )
+    url = f"https://www.threads.com/@{username}"
 
-        context = await browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-            viewport={"width": 1280, "height": 1000},
-            locale="en-US",
-        )
-
+    async with await browser_inst.new_context() as context:
         page = await context.new_page()
-        url = f"https://www.threads.com/@{username}"
-
         try:
             await page.goto(url, wait_until="load", timeout=30000)
-            await page.wait_for_timeout(4000)
+
+            # Intelligent Page Waiting: Wait for post elements or profile link.
+            try:
+                await page.wait_for_selector('a[href*="/post/"]', timeout=3000)
+            except Exception:  # pylint: disable=broad-except
+                await page.wait_for_timeout(1000)
 
             # Dismiss login modal by pressing Escape
             await page.keyboard.press("Escape")
-            await page.wait_for_timeout(1000)
+            await page.wait_for_timeout(500)
 
             content = await page.content()
             posts = extract_posts_from_html(content)
@@ -183,4 +175,4 @@ async def scrape_user_posts(username: str) -> list[data.PostDict]:
             return filtered_posts
 
         finally:
-            await browser.close()
+            await page.close()

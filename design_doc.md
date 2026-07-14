@@ -83,7 +83,7 @@ Adapting the slash-command interface to Threads:
 The monitor runs as a background task (`discord.ext.tasks` loop) every 5–10 minutes:
 1. Load all active usernames from `data.json`.
 2. For each username, invoke the **Playwright Scraper**:
-   - Launch Headless Chromium.
+   - Rent/borrow an isolated `BrowserContext` from the bot-owned shared `Browser` instance.
    - Load `https://www.threads.com/@username`.
    - Extract posts from HTML JSON state using the recursive search utility.
 3. Filter posts to select only those published after the initial bot startup/monitoring setup.
@@ -95,3 +95,13 @@ The monitor runs as a background task (`discord.ext.tasks` loop) every 5–10 mi
 6. To avoid aggressive scraping and rate limits:
    - Randomize delays between scraping different users.
    - Run the loop at a conservative interval (e.g. 5–10 minutes).
+
+---
+
+## 6. Shared Browser Lifecycle (Scraping Engine Optimization)
+
+To reduce CPU/memory overhead and prevent spawning multiple heavy browser processes, the bot implements a shared browser architecture:
+
+- **Single Browser Process**: A single Playwright Chromium browser is launched when the bot starts (`setup_hook()`) and terminated when the bot shuts down (`close()`).
+- **Context Isolation**: For each scraping task, the scraper leases a clean, isolated `BrowserContext` from the shared browser instance. This prevents cookie/session bleed while avoiding browser launch latency.
+- **Intelligent Waiting**: The scraper waits dynamically for the target profile's posts selector (`a[href*="/post/"]`) rather than using hardcoded sleep timeouts, falling back to a quick 1-second delay if the profile has no posts.

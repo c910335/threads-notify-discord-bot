@@ -60,7 +60,9 @@ class ThreadsMonitor(commands.Cog):
             username: The Threads username profile to check.
         """
         print(f"Checking updates for Threads profile: @{username}")
-        posts: list[data.PostDict] = await scraper.scrape_user_posts(username)
+        posts: list[data.PostDict] = await scraper.scrape_user_posts(
+            self.bot.browser, username
+        )
 
         if not posts:
             print(f"No posts found for @{username}, skipping.")

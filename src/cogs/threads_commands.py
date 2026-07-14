@@ -228,7 +228,7 @@ class ThreadsCommands(commands.Cog):
 
         try:
             posts: list[data.PostDict] = await scraper.scrape_user_posts(
-                username
+                self.bot.browser, username
             )
             if not posts:
                 await interaction.followup.send(

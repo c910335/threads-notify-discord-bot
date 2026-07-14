@@ -16,18 +16,33 @@ class ThreadsBotTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(bot_instance.intents, discord.Intents)
 
     async def test_setup_hook(self) -> None:
-        """Verifies setup_hook loads extensions and syncs commands."""
+        """Verifies setup_hook loads extensions, syncs commands, and starts browser."""
         bot_instance = bot.ThreadsBot()
         bot_instance.load_extension = mock.AsyncMock()
         bot_instance.tree.sync = mock.AsyncMock()
 
-        await bot_instance.setup_hook()
+        with mock.patch("browser.Browser.start", new_callable=mock.AsyncMock) as mock_start:
+            await bot_instance.setup_hook()
+            mock_start.assert_called_once()
 
         # Should load the commands and monitor extension cogs
         bot_instance.load_extension.assert_any_call("cogs.threads_commands")
         bot_instance.load_extension.assert_any_call("cogs.monitor")
         self.assertEqual(bot_instance.load_extension.call_count, 2)
         bot_instance.tree.sync.assert_called_once()
+
+    async def test_close(self) -> None:
+        """Verifies close() shuts down bot client connection and stops browser."""
+        bot_instance = bot.ThreadsBot()
+        with mock.patch(
+            "browser.Browser.close", new_callable=mock.AsyncMock
+        ) as mock_close:
+            with mock.patch(
+                "discord.ext.commands.Bot.close", new_callable=mock.AsyncMock
+            ) as mock_super_close:
+                await bot_instance.close()
+                mock_close.assert_called_once()
+                mock_super_close.assert_called_once()
 
     async def test_on_ready(self) -> None:
         """Verifies on_ready event prints logging information."""
