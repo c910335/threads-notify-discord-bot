@@ -12,12 +12,14 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
     """Test cases for the Browser manager in browser.py."""
 
     async def test_start_stop(self) -> None:
-        """Verifies start() and close() correctly manage playwright instances."""
+        """Verifies start() and close() manage playwright instances."""
         mock_playwright = mock.MagicMock()
         mock_browser = mock.MagicMock()
 
         mock_playwright.chromium = mock.MagicMock()
-        mock_playwright.chromium.launch = mock.AsyncMock(return_value=mock_browser)
+        mock_playwright.chromium.launch = mock.AsyncMock(
+            return_value=mock_browser
+        )
         mock_browser.close = mock.AsyncMock()
         mock_playwright.stop = mock.AsyncMock()
 
@@ -57,7 +59,9 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
         mock_context = mock.MagicMock()
 
         mock_playwright.chromium = mock.MagicMock()
-        mock_playwright.chromium.launch = mock.AsyncMock(return_value=mock_browser)
+        mock_playwright.chromium.launch = mock.AsyncMock(
+            return_value=mock_browser
+        )
         mock_browser.new_context = mock.AsyncMock(return_value=mock_context)
 
         async_pw_mock = mock.MagicMock()

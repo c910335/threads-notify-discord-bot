@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 import discord
+
 import bot
 
 
@@ -18,7 +19,7 @@ class ThreadsBotTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(bot_instance.intents, discord.Intents)
 
     async def test_setup_hook(self) -> None:
-        """Verifies setup_hook loads extensions, syncs commands, and starts browser."""
+        """Verifies setup_hook registers extensions and starts browser."""
         bot_instance = bot.ThreadsBot()
         bot_instance.load_extension = mock.AsyncMock()
         bot_instance.tree.sync = mock.AsyncMock()
@@ -36,7 +37,7 @@ class ThreadsBotTest(unittest.IsolatedAsyncioTestCase):
         bot_instance.tree.sync.assert_called_once()
 
     async def test_close(self) -> None:
-        """Verifies close() shuts down bot client connection and stops browser."""
+        """Verifies close() shuts down client and stops browser."""
         bot_instance = bot.ThreadsBot()
         with mock.patch(
             "browser.Browser.close", new_callable=mock.AsyncMock
@@ -59,7 +60,9 @@ class ThreadsBotTest(unittest.IsolatedAsyncioTestCase):
 
         with mock.patch("builtins.print") as mock_print:
             await bot_instance.on_ready()
-            mock_print.assert_called_once_with("Logged in as ThreadsBot (ID: 12345)")
+            mock_print.assert_called_once_with(
+                "Logged in as ThreadsBot (ID: 12345)"
+            )
 
 
 if __name__ == "__main__":

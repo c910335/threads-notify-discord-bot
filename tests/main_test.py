@@ -3,15 +3,15 @@
 import unittest
 from unittest import mock
 
-import main
 import config
+import main
 
 
 class MainTest(unittest.TestCase):
     """Test cases for the bot main entry point script."""
 
     def test_main_missing_token(self) -> None:
-        """Verifies that main exits with status 1 if token is default or missing."""
+        """Verifies that main exits with status 1 if token is missing."""
         # 1. Missing (empty) token
         with mock.patch.object(config, "DISCORD_TOKEN", ""):
             with mock.patch("sys.exit", side_effect=SystemExit) as mock_exit:
@@ -21,7 +21,9 @@ class MainTest(unittest.TestCase):
                     mock_exit.assert_called_once_with(1)
 
         # 2. Sample/Default token
-        with mock.patch.object(config, "DISCORD_TOKEN", "YOUR_DISCORD_TOKEN_HERE"):
+        with mock.patch.object(
+            config, "DISCORD_TOKEN", "YOUR_DISCORD_TOKEN_HERE"
+        ):
             with mock.patch("sys.exit", side_effect=SystemExit) as mock_exit:
                 with mock.patch("builtins.print"):
                     with self.assertRaises(SystemExit):
@@ -38,8 +40,12 @@ class MainTest(unittest.TestCase):
                 with mock.patch("sys.stdout.reconfigure") as mock_reconfig:
                     with mock.patch("builtins.print"):
                         main.main()
-                        mock_reconfig.assert_called_once_with(line_buffering=True)
-                        mock_bot_instance.run.assert_called_once_with("valid_token")
+                        mock_reconfig.assert_called_once_with(
+                            line_buffering=True
+                        )
+                        mock_bot_instance.run.assert_called_once_with(
+                            "valid_token"
+                        )
 
 
 if __name__ == "__main__":

@@ -6,7 +6,10 @@ from playwright import async_api
 
 
 class Browser:
-    """Wraps a Playwright browser instance, implementing new_context and close."""
+    """Wraps a Playwright browser instance.
+
+    Implements new_context and close.
+    """
 
     def __init__(self) -> None:
         """Initializes the browser proxy state placeholders."""

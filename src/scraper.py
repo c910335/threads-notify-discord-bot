@@ -33,26 +33,42 @@ def find_key_in_dict(obj: Any, target_key: str) -> list[Any]:
     return results
 
 
+def _extract_single_media_url(media_obj: dict[str, Any]) -> str | None:
+    """Helper to extract a single video or image URL from a media object."""
+    videos = media_obj.get("video_versions") or []
+    if videos:
+        return videos[0].get("url")
+    img_versions = media_obj.get("image_versions2", {}).get("candidates", [])
+    if img_versions:
+        return img_versions[0].get("url")
+    return None
+
+
 def _extract_media(post_data: dict[str, Any]) -> list[str]:
     """Helper to extract media candidate URLs (image/video) from a post."""
     media_urls = []
     # 1. Carousel media
     carousel = post_data.get("carousel_media") or []
     for c in carousel:
-        img_versions = c.get("image_versions2", {}).get("candidates", [])
-        if img_versions:
-            media_urls.append(img_versions[0].get("url"))
+        url = _extract_single_media_url(c)
+        if url:
+            media_urls.append(url)
 
-    # 2. Single Image
+    # 2. Single item (not carousel)
+    if not carousel:
+        url = _extract_single_media_url(post_data)
+        if url:
+            media_urls.append(url)
+
+    # 3. Linked inline media (e.g. video attachments or shared reels)
     if not media_urls:
-        img_versions = post_data.get("image_versions2", {}).get("candidates", [])
-        if img_versions:
-            media_urls.append(img_versions[0].get("url"))
-
-    # 3. Video
-    videos = post_data.get("video_versions") or []
-    if videos:
-        media_urls.append(videos[0].get("url"))
+        linked = post_data.get("text_post_app_info", {}).get(
+            "linked_inline_media"
+        )
+        if linked:
+            url = _extract_single_media_url(linked)
+            if url:
+                media_urls.append(url)
 
     return media_urls
 
@@ -109,7 +125,7 @@ def _get_numerical_id(post: data.PostDict) -> int:
 
 
 def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
-    """Extracts post information from application/json blocks in the HTML content.
+    """Extracts post information from application/json blocks in HTML.
 
     Args:
         html_content: The fully rendered HTML page source.
@@ -157,7 +173,7 @@ def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
 async def scrape_user_posts(
     browser_inst: browser.Browser, username: str
 ) -> list[data.PostDict]:
-    """Launches Playwright headless Chromium and scrapes posts for a user profile.
+    """Launches Playwright Chromium and scrapes posts for a user profile.
 
     Args:
         browser_inst: The shared Browser instance to borrow contexts from.
@@ -186,7 +202,7 @@ async def scrape_user_posts(
             content = await page.content()
             posts = extract_posts_from_html(content)
 
-            # Filter posts to ensure we only return posts belonging to the target username
+            # Filter posts to ensure we only return posts of the target user
             filtered_posts = [
                 p
                 for p in posts

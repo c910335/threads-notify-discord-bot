@@ -17,7 +17,9 @@ class DataStoreTest(unittest.TestCase):
         """Sets up custom testing file paths and initializes a fresh store."""
         self.test_dir = self.enterContext(tempfile.TemporaryDirectory())
         data.DataStore.DATA_FILE = os.path.join(self.test_dir, "test_data.json")
-        data.DataStore.SEEN_FILE = os.path.join(self.test_dir, "test_seen_posts.json")
+        data.DataStore.SEEN_FILE = os.path.join(
+            self.test_dir, "test_seen_posts.json"
+        )
         data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
             self.test_dir, "test_display_names.json"
         )
@@ -29,13 +31,15 @@ class DataStoreTest(unittest.TestCase):
         self.assertEqual(self.store.seen_posts, {})
 
     def test_load_corrupt_files_handles_gracefully(self) -> None:
-        """Verifies recovery and fallback behavior when files contain invalid JSON."""
+        """Verifies recovery behavior when files contain invalid JSON."""
         # Create invalid files on disk
         with open(data.DataStore.DATA_FILE, "w", encoding="utf-8") as f:
             f.write("invalid json")
         with open(data.DataStore.SEEN_FILE, "w", encoding="utf-8") as f:
             f.write("invalid json")
-        with open(data.DataStore.DISPLAY_NAMES_FILE, "w", encoding="utf-8") as f:
+        with open(
+            data.DataStore.DISPLAY_NAMES_FILE, "w", encoding="utf-8"
+        ) as f:
             f.write("invalid json")
 
         # Loading should recover and load empty datasets
@@ -45,7 +49,7 @@ class DataStoreTest(unittest.TestCase):
         self.assertEqual(store.display_names, {})
 
     def test_safe_write_handles_exceptions(self) -> None:
-        """Verifies that safe writing handles write errors without corrupting file."""
+        """Verifies safe writing handles write errors gracefully."""
         # Make a write attempt raise OSError on rename
         with mock.patch("os.replace", side_effect=OSError("Disk Full")):
             with self.assertRaises(OSError):
@@ -60,17 +64,21 @@ class DataStoreTest(unittest.TestCase):
             message="hello",
             mention="<@&123>",
             overwrite=False,
+            include_media=False,
         )
         subs = self.store.list_subscriptions(111)
         self.assertEqual(len(subs), 1)
         self.assertEqual(subs[0]["username"], "c910335")
         self.assertEqual(subs[0]["message"], "hello")
         self.assertEqual(subs[0]["mention"], "<@&123>")
+        self.assertFalse(subs[0]["include_media"])
 
     def test_add_subscription_rejects_duplicate_without_overwrite(self) -> None:
-        """Verifies duplicate subscriptions are rejected when overwrite is false."""
+        """Verifies duplicates are rejected when overwrite is false."""
         self.store.add_subscription("c910335", 111, 222, "msg1", "", False)
-        result = self.store.add_subscription("c910335", 111, 222, "msg2", "", False)
+        result = self.store.add_subscription(
+            "c910335", 111, 222, "msg2", "", False
+        )
         self.assertFalse(result)
 
         # Check message did not get updated
@@ -78,14 +86,19 @@ class DataStoreTest(unittest.TestCase):
         self.assertEqual(subs[0]["message"], "msg1")
 
     def test_add_subscription_updates_with_overwrite(self) -> None:
-        """Verifies that duplicate subscription settings are updated when overwrite is true."""
-        self.store.add_subscription("c910335", 111, 222, "msg1", "", False)
-        result = self.store.add_subscription("c910335", 111, 222, "msg2", "", True)
+        """Verifies subscription updates when overwrite is true."""
+        self.store.add_subscription(
+            "c910335", 111, 222, "msg1", "", False, include_media=False
+        )
+        result = self.store.add_subscription(
+            "c910335", 111, 222, "msg2", "", True, include_media=True
+        )
         self.assertTrue(result)
 
-        # Check message did get updated
+        # Check message and include_media did get updated
         subs = self.store.list_subscriptions(111)
         self.assertEqual(subs[0]["message"], "msg2")
+        self.assertTrue(subs[0]["include_media"])
 
     def test_remove_subscription_success(self) -> None:
         """Verifies removing subscription succeeds if it exists."""
@@ -122,7 +135,7 @@ class DataStoreTest(unittest.TestCase):
         self.assertTrue(self.store.is_post_seen("newuser", "postA"))
 
     def test_display_name_caching(self) -> None:
-        """Verifies getting, updating, and loading username display names from disk."""
+        """Verifies getting, updating, and loading display names."""
         # Default name when uncached is username itself
         self.assertEqual(self.store.get_display_name("c910335"), "c910335")
 
@@ -130,12 +143,12 @@ class DataStoreTest(unittest.TestCase):
         self.store.update_display_name("c910335", "達人")
         self.assertEqual(self.store.get_display_name("c910335"), "達人")
 
-        # Create a new store instance to verify it loads from display_names.json on disk
+        # Verify it loads display names from JSON file on disk
         new_store = data.DataStore()
         self.assertEqual(new_store.get_display_name("c910335"), "達人")
 
     def test_get_subscriptions_for_user(self) -> None:
-        """Verifies retrieving subscriptions matching a username across channels."""
+        """Verifies retrieving subscriptions matching a username."""
         self.store.add_subscription("c910335", 111, 222, "msg", "", False)
         self.store.add_subscription("c910335", 333, 222, "msg", "", False)
         self.store.add_subscription("otheruser", 111, 222, "msg", "", False)

@@ -14,7 +14,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
     """Test cases for Threads profile HTML and state structure parsing."""
 
     def test_find_key_in_dict(self) -> None:
-        """Verifies recursion find key searches dictionaries and lists correctly."""
+        """Verifies find_key_in_dict recursion searches correctly."""
         data_dict = {
             "a": 1,
             "b": [
@@ -48,20 +48,95 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
             "carousel_media": [
                 {
                     "image_versions2": {
-                        "candidates": [{"url": "https://example.com/slide1.jpg"}]
+                        "candidates": [
+                            {"url": "https://example.com/slide1.jpg"}
+                        ]
                     }
                 },
                 {
                     "image_versions2": {
-                        "candidates": [{"url": "https://example.com/slide2.jpg"}]
+                        "candidates": [
+                            {"url": "https://example.com/slide2.jpg"}
+                        ]
                     }
                 },
             ]
         }
         urls = scraper._extract_media(post_data)
         self.assertEqual(
-            urls, ["https://example.com/slide1.jpg", "https://example.com/slide2.jpg"]
+            urls,
+            [
+                "https://example.com/slide1.jpg",
+                "https://example.com/slide2.jpg",
+            ],
         )
+
+    def test_extract_media_carousel_mixed(self) -> None:
+        """Verifies media extraction for mixed carousels (image and video)."""
+        post_data = {
+            "carousel_media": [
+                {
+                    "image_versions2": {
+                        "candidates": [
+                            {"url": "https://example.com/slide1.jpg"}
+                        ]
+                    }
+                },
+                {
+                    "video_versions": [
+                        {"url": "https://example.com/slide2.mp4"}
+                    ],
+                    "image_versions2": {
+                        "candidates": [
+                            {"url": "https://example.com/slide2_thumbnail.jpg"}
+                        ]
+                    },
+                },
+            ]
+        }
+        urls = scraper._extract_media(post_data)
+        self.assertEqual(
+            urls,
+            [
+                "https://example.com/slide1.jpg",
+                "https://example.com/slide2.mp4",
+            ],
+        )
+
+    def test_extract_media_linked_inline_media(self) -> None:
+        """Verifies media candidate URL extraction for linked inline media."""
+        # 1. Linked video versions
+        post_data = {
+            "text_post_app_info": {
+                "linked_inline_media": {
+                    "video_versions": [
+                        {"url": "https://example.com/linked.mp4"}
+                    ],
+                    "image_versions2": {
+                        "candidates": [
+                            {"url": "https://example.com/linked_thumbnail.jpg"}
+                        ]
+                    },
+                }
+            }
+        }
+        urls = scraper._extract_media(post_data)
+        self.assertEqual(urls, ["https://example.com/linked.mp4"])
+
+        # 2. Linked image versions
+        post_data_img = {
+            "text_post_app_info": {
+                "linked_inline_media": {
+                    "image_versions2": {
+                        "candidates": [
+                            {"url": "https://example.com/linked.jpg"}
+                        ]
+                    }
+                }
+            }
+        }
+        urls_img = scraper._extract_media(post_data_img)
+        self.assertEqual(urls_img, ["https://example.com/linked.jpg"])
 
     def test_parse_post_correctly(self) -> None:
         """Verifies parsing a raw GraphQL post into a structured PostDict."""
@@ -86,11 +161,15 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(parsed["display_name"], "Test User")
         self.assertEqual(parsed["text"], "Check this out!")
         self.assertEqual(parsed["timestamp"], 1700000000)
-        self.assertEqual(parsed["url"], "https://www.threads.com/@tester/post/CodeABC")
-        self.assertEqual(parsed["media_urls"], ["https://example.com/video.mp4"])
+        self.assertEqual(
+            parsed["url"], "https://www.threads.com/@tester/post/CodeABC"
+        )
+        self.assertEqual(
+            parsed["media_urls"], ["https://example.com/video.mp4"]
+        )
 
     def test_extract_posts_from_html(self) -> None:
-        """Verifies extracting and sorting posts from JSON script tags inside HTML."""
+        """Verifies extracting and sorting posts from script tags in HTML."""
         mock_html = """
         <html>
             <head><title>Threads Test</title></head>
@@ -109,7 +188,10 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
                                             "id": "post_older",
                                             "code": "OldCode",
                                             "taken_at": 1600000000,
-                                            "user": {"username": "tester", "full_name": "Test User"},
+                                            "user": {
+                                                "username": "tester",
+                                                "full_name": "Test User"
+                                            },
                                             "caption": {"text": "First post"}
                                         }
                                     }
@@ -127,7 +209,10 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
                                 "id": "post_newer",
                                 "code": "NewCode",
                                 "taken_at": 1700000000,
-                                "user": {"username": "tester", "full_name": "Test User"},
+                                "user": {
+                                    "username": "tester",
+                                    "full_name": "Test User"
+                                },
                                 "caption": {"text": "Second post"}
                             }
                         }
@@ -203,7 +288,9 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         mock_page.keyboard.press = mock.AsyncMock()
         mock_page.wait_for_selector = mock.AsyncMock()
         mock_page.wait_for_timeout = mock.AsyncMock()
-        mock_page.content = mock.AsyncMock(return_value="<html>Mock HTML</html>")
+        mock_page.content = mock.AsyncMock(
+            return_value="<html>Mock HTML</html>"
+        )
         mock_page.close = mock.AsyncMock()
 
         with mock.patch("scraper.extract_posts_from_html") as mock_extract:
@@ -232,7 +319,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
             mock_page.close.assert_called_once()
 
     async def test_scrape_user_posts_handles_selector_timeout(self) -> None:
-        """Verifies scrape_user_posts falls back to wait_for_timeout on selector timeout."""
+        """Verifies scrape_user_posts handles selector timeout."""
         mock_browser = mock.AsyncMock()
         mock_context = mock.MagicMock()
         mock_page = mock.MagicMock()
@@ -248,7 +335,9 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
             side_effect=async_api.Error("Timeout")
         )
         mock_page.wait_for_timeout = mock.AsyncMock()
-        mock_page.content = mock.AsyncMock(return_value="<html>Mock HTML</html>")
+        mock_page.content = mock.AsyncMock(
+            return_value="<html>Mock HTML</html>"
+        )
         mock_page.close = mock.AsyncMock()
 
         with mock.patch("scraper.extract_posts_from_html", return_value=[]):
@@ -270,7 +359,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         # 2. _parse_post with missing id
         self.assertIsNone(scraper._parse_post({"code": "C123"}))
 
-        # 3. extract_posts_from_html with invalid JSON, empty, or malformed structures
+        # 3. extract_posts_from_html with invalid or empty JSON structures
         mock_html = """
         <html>
             <!-- empty script -->

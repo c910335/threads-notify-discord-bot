@@ -15,6 +15,7 @@ class SubscriptionDict(TypedDict):
     server_id: int
     message: str
     mention: str
+    include_media: bool
 
 
 class PostDict(TypedDict):
@@ -54,7 +55,12 @@ class DataStore:
                 try:
                     with open(self.DATA_FILE, "r", encoding="utf-8") as f:
                         self.subscriptions = json.load(f)
-                except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
+                except (
+                    json.JSONDecodeError,
+                    OSError,
+                    TypeError,
+                    ValueError,
+                ) as e:
                     print(f"Error loading subscriptions: {e}")
                     self.subscriptions = []
             else:
@@ -65,7 +71,12 @@ class DataStore:
                 try:
                     with open(self.SEEN_FILE, "r", encoding="utf-8") as f:
                         self.seen_posts = json.load(f)
-                except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
+                except (
+                    json.JSONDecodeError,
+                    OSError,
+                    TypeError,
+                    ValueError,
+                ) as e:
                     print(f"Error loading seen posts cache: {e}")
                     self.seen_posts = {}
             else:
@@ -74,20 +85,32 @@ class DataStore:
             # Load Display Names Cache
             if os.path.exists(self.DISPLAY_NAMES_FILE):
                 try:
-                    with open(self.DISPLAY_NAMES_FILE, "r", encoding="utf-8") as f:
+                    with open(
+                        self.DISPLAY_NAMES_FILE, "r", encoding="utf-8"
+                    ) as f:
                         self.display_names = json.load(f)
-                except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
+                except (
+                    json.JSONDecodeError,
+                    OSError,
+                    TypeError,
+                    ValueError,
+                ) as e:
                     print(f"Error loading display names cache: {e}")
                     self.display_names = {}
             else:
                 self.display_names = {}
 
     def _safe_write(self, filepath: str, data: Any) -> None:
-        """Atomically writes data to a file by writing to a temporary file first.
+        """Atomically writes data to a file via a temporary file.
 
         Args:
             filepath: The destination file path.
             data: The JSON serializable data to write.
+
+        Raises:
+            OSError: If temporary directory is unwritable or replacement fails.
+            TypeError: If data is not JSON serializable.
+            ValueError: If JSON encoding fails.
         """
         dir_name = os.path.dirname(os.path.abspath(filepath))
         with tempfile.NamedTemporaryFile(
@@ -140,6 +163,7 @@ class DataStore:
         message: str,
         mention: str,
         overwrite: bool,
+        include_media: bool = False,
     ) -> bool:
         """Adds or updates a channel subscription to a user.
 
@@ -150,6 +174,7 @@ class DataStore:
             message: The notification template message.
             mention: The mention role or user string.
             overwrite: Whether to overwrite existing subscription settings.
+            include_media: Whether to include images/videos in notifications.
 
         Returns:
             True if the subscription was successfully created or updated,
@@ -171,6 +196,7 @@ class DataStore:
             existing["message"] = message
             existing["mention"] = mention
             existing["server_id"] = server_id
+            existing["include_media"] = include_media
         else:
             # Create new
             self.subscriptions.append(
@@ -180,6 +206,7 @@ class DataStore:
                     "server_id": server_id,
                     "message": message,
                     "mention": mention,
+                    "include_media": include_media,
                 }
             )
 
@@ -201,13 +228,15 @@ class DataStore:
         self.subscriptions = [
             sub
             for sub in self.subscriptions
-            if not (sub["username"] == username and sub["channel_id"] == channel_id)
+            if not (
+                sub["username"] == username and sub["channel_id"] == channel_id
+            )
         ]
 
         if len(self.subscriptions) < original_len:
             self.save_subscriptions()
 
-            # Clean up seen posts and display names if no channels subscribe to this user anymore
+            # Clean up metadata if no channels subscribe to this user anymore
             all_usernames = {sub["username"] for sub in self.subscriptions}
             if username not in all_usernames:
                 if username in self.seen_posts:
@@ -229,7 +258,9 @@ class DataStore:
         Returns:
             A list of matching subscription dictionaries.
         """
-        return [sub for sub in self.subscriptions if sub["channel_id"] == channel_id]
+        return [
+            sub for sub in self.subscriptions if sub["channel_id"] == channel_id
+        ]
 
     def get_all_sub_usernames(self) -> set[str]:
         """Gets the set of all unique usernames currently subscribed to.
@@ -239,7 +270,9 @@ class DataStore:
         """
         return {sub["username"] for sub in self.subscriptions}
 
-    def get_subscriptions_for_user(self, username: str) -> list[SubscriptionDict]:
+    def get_subscriptions_for_user(
+        self, username: str
+    ) -> list[SubscriptionDict]:
         """Gets all subscription objects targeting a specific user.
 
         Args:

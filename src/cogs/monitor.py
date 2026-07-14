@@ -41,7 +41,8 @@ class ThreadsMonitor(commands.Cog):
                 error_trace = traceback.format_exc()
                 print(f"Error checking updates for @{username}:\n{error_trace}")
                 await self.report_error(
-                    f"Error scraping @{username}:\n```\n{error_trace[:1800]}\n```"
+                    f"Error scraping @{username}:\n"
+                    f"```\n{error_trace[:1800]}\n```"
                 )
 
         print("Heartbeat check done.")
@@ -84,7 +85,9 @@ class ThreadsMonitor(commands.Cog):
 
         # Find new posts (oldest first)
         new_posts = [
-            p for p in reversed(posts) if not data.db.is_post_seen(username, p["id"])
+            p
+            for p in reversed(posts)
+            if not data.db.is_post_seen(username, p["id"])
         ]
 
         for post in new_posts:
@@ -113,8 +116,12 @@ class ThreadsMonitor(commands.Cog):
                     continue
 
             payload = utils.format_notification(sub, post, display_name)
+            view = utils.get_media_gallery_view(sub, post, payload)
             try:
-                await channel.send(payload)
+                if view is not None:
+                    await channel.send(view=view)
+                else:
+                    await channel.send(payload)
                 print(
                     f"Sent notification to channel {sub['channel_id']} "
                     f"for post {post['url']}"

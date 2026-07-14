@@ -21,8 +21,12 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         """Sets up custom testing file paths and mock bot context."""
         self.test_dir = self.enterContext(tempfile.TemporaryDirectory())
-        data.DataStore.DATA_FILE = os.path.join(self.test_dir, "test_monitor_data.json")
-        data.DataStore.SEEN_FILE = os.path.join(self.test_dir, "test_monitor_seen.json")
+        data.DataStore.DATA_FILE = os.path.join(
+            self.test_dir, "test_monitor_data.json"
+        )
+        data.DataStore.SEEN_FILE = os.path.join(
+            self.test_dir, "test_monitor_seen.json"
+        )
         data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
             self.test_dir, "test_monitor_display_names.json"
         )
@@ -41,7 +45,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
             self.monitor_cog = monitor.ThreadsMonitor(self.mock_bot)
 
     async def test_monitor_check_profile_new_post(self) -> None:
-        """Verifies background monitor task detects, caches, and alerts on a new post."""
+        """Verifies background monitor task detects and alerts on new posts."""
         self.db.add_subscription("c910335", 111, 222, "msg", "", False)
         # Initialize seen posts with an older post
         self.db.init_user_seen_posts("c910335", ["old_post_id"])
@@ -84,7 +88,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_monitor_report_error_sends_to_admin(self) -> None:
-        """Verifies report_error sends error reports correctly to admin channel."""
+        """Verifies report_error sends reports correctly to admin channel."""
         mock_channel = mock.AsyncMock()
         self.mock_bot.get_channel.return_value = None
         self.mock_bot.fetch_channel = mock.AsyncMock(return_value=mock_channel)
@@ -104,7 +108,9 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(
             self.monitor_cog, "_check_profile", side_effect=Exception("Crash")
         ):
-            with mock.patch.object(self.monitor_cog, "report_error") as mock_report:
+            with mock.patch.object(
+                self.monitor_cog, "report_error"
+            ) as mock_report:
                 with mock.patch.object(
                     self.monitor_cog, "before_monitor"
                 ) as mock_before:
@@ -122,7 +128,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         self.mock_bot.wait_until_ready.assert_called_once()
 
     async def test_monitor_check_profile_empty_and_new_user(self) -> None:
-        """Verifies check_profile behavior with no posts and with a newly subscribed user."""
+        """Verifies check_profile with no posts and new subscriptions."""
         # 1. No posts found
         with mock.patch("scraper.scrape_user_posts", return_value=[]):
             await self.monitor_cog._check_profile("c910335")
@@ -147,8 +153,10 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(self.db.is_post_seen("c910335", "post1"))
 
-    async def test_monitor_send_alerts_cached_channel_and_failures(self) -> None:
-        """Verifies _send_alerts with cached channels, fetch failures, and send errors."""
+    async def test_monitor_send_alerts_cached_channel_and_failures(
+        self,
+    ) -> None:
+        """Verifies _send_alerts with channel retrieval and send failures."""
         post: data.PostDict = {
             "id": "1",
             "code": "C",
@@ -157,15 +165,20 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
             "text": "T",
             "timestamp": 1,
             "url": "https://url",
-            "media_urls": [],
+            "media_urls": ["https://example.com/media.jpg"],
         }
-        self.db.add_subscription("user", 111, 222, "msg", "", False)
+        self.db.add_subscription(
+            "user", 111, 222, "msg", "", False, include_media=True
+        )
 
         # 1. Cached channel works
         mock_channel = mock.AsyncMock()
         self.mock_bot.get_channel.return_value = mock_channel
         await self.monitor_cog._send_alerts("user", post, "User")
         mock_channel.send.assert_called_once()
+        kwargs = mock_channel.send.call_args[1]
+        self.assertIn("view", kwargs)
+        self.assertIsNotNone(kwargs["view"])
 
         # 2. Fetch channel fails
         self.mock_bot.get_channel.return_value = None
@@ -196,8 +209,10 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         mock_channel.send.assert_called_once_with("Some error")
 
     async def test_monitor_report_error_exception_grace(self) -> None:
-        """Verifies report_error doesn't crash when bot API calls raise exceptions."""
-        self.mock_bot.get_channel.side_effect = discord.DiscordException("Crash")
+        """Verifies report_error handles exceptions gracefully."""
+        self.mock_bot.get_channel.side_effect = discord.DiscordException(
+            "Crash"
+        )
         with mock.patch.object(config, "ADMIN_CHANNEL_ID", 999):
             await self.monitor_cog.report_error("Some error")
 

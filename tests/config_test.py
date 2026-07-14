@@ -32,7 +32,7 @@ class ConfigTest(unittest.TestCase):
 
         with mock.patch("dotenv.load_dotenv", side_effect=mock_load_dotenv):
             with mock.patch.dict(os.environ, {}, clear=True):
-                # Temporarily remove unittest from sys.modules to simulate non-test environment
+                # Remove unittest to simulate non-test environment
                 unittest_module = sys.modules.pop("unittest", None)
                 try:
                     importlib.reload(config)

@@ -33,7 +33,8 @@ async def log_interaction(
                 )
             msg = (
                 f"**[Command Log]** {interaction.user.name} "
-                f"({interaction.user.mention}) ran `/{interaction.command.name}` "
+                f"({interaction.user.mention}) "
+                f"ran `/{interaction.command.name}` "
                 f"in <#{interaction.channel_id}>. Options: `{extra_options}`"
             )
             await channel.send(msg)
@@ -71,6 +72,49 @@ def format_notification(
         .replace("{mention}", mention_str)
     )
 
-    if "{url}" in sub["message"]:
-        return msg
-    return f"{url}\n{msg}"
+    if "{url}" not in sub["message"]:
+        msg = f"{url}\n{msg}"
+
+    media_urls = post.get("media_urls") or []
+    if sub.get("include_media", True) and len(media_urls) > 10:
+        omitted = len(media_urls) - 10
+        msg = (
+            f"{msg}\n*(Note: {omitted} additional media items were omitted "
+            f"due to Discord limitations)*"
+        )
+
+    return msg
+
+
+def get_media_gallery_view(
+    sub: data.SubscriptionDict, post: data.PostDict, payload: str
+) -> discord.ui.LayoutView | None:
+    """Creates a discord.ui.LayoutView with a MediaGallery if media is enabled.
+
+    The gallery is created only if media URLs are present.
+
+    Args:
+        sub: The subscription configuration dictionary.
+        post: The scraped post dictionary.
+        payload: The formatted text message content.
+
+    Returns:
+        A LayoutView containing the TextDisplay and MediaGallery, or None.
+    """
+    if not sub.get("include_media", False):
+        return None
+
+    media_urls = post.get("media_urls") or []
+    if not media_urls:
+        return None
+
+    view = discord.ui.LayoutView(timeout=None)
+    view.add_item(discord.ui.TextDisplay(payload))
+
+    gallery = discord.ui.MediaGallery()
+    # Discord media gallery supports up to 10 items
+    for url in media_urls[:10]:
+        gallery.add_item(media=url)
+
+    view.add_item(gallery)
+    return view

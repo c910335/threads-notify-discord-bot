@@ -43,7 +43,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         self.commands_cog = threads_commands.ThreadsCommands(self.mock_bot)
 
     async def test_subscribe_command_success(self) -> None:
-        """Verifies /subscribe command registers a new subscription successfully."""
+        """Verifies /subscribe command registers a subscription."""
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
         mock_interaction.channel_id = 111
         mock_interaction.guild_id = 222
@@ -64,12 +64,14 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
                 message="hello {name} {url}",
                 mention=None,
                 overwrite=False,
+                include_media=False,
             )
 
         # Verify subscription was added
         subs = self.db.list_subscriptions(111)
         self.assertEqual(len(subs), 1)
         self.assertEqual(subs[0]["username"], "c910335")
+        self.assertFalse(subs[0]["include_media"])
         mock_interaction.response.send_message.assert_called_once()
         self.assertIn(
             "I will send notifications",
@@ -77,7 +79,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_subscribe_command_conflict_without_overwrite(self) -> None:
-        """Verifies /subscribe command rejects duplicate subscription without overwrite."""
+        """Verifies /subscribe command rejects duplicates without overwrite."""
         self.db.add_subscription("c910335", 111, 222, "msg", "", False)
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
@@ -109,7 +111,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_unsubscribe_command_success(self) -> None:
-        """Verifies /unsubscribe command removes active subscription successfully."""
+        """Verifies /unsubscribe command removes active subscriptions."""
         self.db.add_subscription("c910335", 111, 222, "msg", "", False)
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
@@ -135,7 +137,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_unsubscribe_command_not_found(self) -> None:
-        """Verifies /unsubscribe command reports failure when no subscription exists."""
+        """Verifies /unsubscribe command handles missing subscription."""
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
         mock_interaction.channel_id = 111
         mock_interaction.guild_id = 222
@@ -177,8 +179,10 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_list_subs_command_populated(self) -> None:
-        """Verifies /list command formats and displays subscriptions correctly."""
-        self.db.add_subscription("c910335", 111, 222, "msg", "<@&1>", False)
+        """Verifies /list command formats and displays subscriptions."""
+        self.db.add_subscription(
+            "c910335", 111, 222, "msg", "<@&1>", False, include_media=False
+        )
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
         mock_interaction.channel_id = 111
@@ -203,9 +207,13 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
             "c910335",
             mock_interaction.response.send_message.call_args[0][0],
         )
+        self.assertIn(
+            "(no media)",
+            mock_interaction.response.send_message.call_args[0][0],
+        )
 
     async def test_test_notify_command_success(self) -> None:
-        """Verifies /test command triggers a manual fetch and notification successfully."""
+        """Verifies /test command triggers manual fetch successfully."""
         self.db.add_subscription("c910335", 111, 222, "msg {url}", "", False)
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
@@ -233,7 +241,9 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         ]
 
         with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
-            with mock.patch("scraper.scrape_user_posts", return_value=mock_posts):
+            with mock.patch(
+                "scraper.scrape_user_posts", return_value=mock_posts
+            ):
                 await self.commands_cog.test_notify.callback(
                     self.commands_cog, mock_interaction, "c910335", False
                 )
@@ -245,8 +255,52 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
             mock_interaction.followup.send.call_args[0][0],
         )
 
+    async def test_test_notify_command_success_with_media(self) -> None:
+        """Verifies /test command sends MediaGallery view successfully."""
+        self.db.add_subscription(
+            "c910335", 111, 222, "msg {url}", "", False, include_media=True
+        )
+
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.channel_id = 111
+        mock_interaction.guild_id = 222
+        mock_interaction.user.name = "adminuser"
+        mock_interaction.user.mention = "<@admin>"
+        mock_interaction.command.name = "test"
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.defer = mock.AsyncMock()
+        mock_interaction.followup = mock.MagicMock()
+        mock_interaction.followup.send = mock.AsyncMock()
+
+        mock_posts = [
+            {
+                "id": "post123",
+                "code": "C123",
+                "username": "c910335",
+                "display_name": "達人",
+                "text": "Hello",
+                "timestamp": 1600000000,
+                "url": "https://www.threads.com/@c910335/post/C123",
+                "media_urls": ["https://img1.jpg"],
+            }
+        ]
+
+        with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
+            with mock.patch(
+                "scraper.scrape_user_posts", return_value=mock_posts
+            ):
+                await self.commands_cog.test_notify.callback(
+                    self.commands_cog, mock_interaction, "c910335", False
+                )
+
+        mock_interaction.response.defer.assert_called_once_with(ephemeral=False)
+        mock_interaction.followup.send.assert_called_once()
+        kwargs = mock_interaction.followup.send.call_args[1]
+        self.assertIn("view", kwargs)
+        self.assertIsNotNone(kwargs["view"])
+
     async def test_autocomplete_username_and_message(self) -> None:
-        """Verifies username and message autocompleters return correct choices."""
+        """Verifies autocompleters return correct choices."""
         self.db.add_subscription("c910335", 111, 222, "msg", "", False)
         self.db.update_display_name("c910335", "達人")
 
@@ -254,7 +308,9 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         mock_interaction.channel_id = 111
 
         # Test autocomplete username
-        choices = await self.commands_cog.autocomplete_username(mock_interaction, "c91")
+        choices = await self.commands_cog.autocomplete_username(
+            mock_interaction, "c91"
+        )
         self.assertEqual(len(choices), 1)
         self.assertEqual(choices[0].name, "達人 (@c910335)")
         self.assertEqual(choices[0].value, "c910335")
@@ -267,7 +323,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("update", msg_choices[0].value)
 
     async def test_test_notify_no_posts_and_error(self) -> None:
-        """Verifies /test command behavior when no posts are found or scrape fails."""
+        """Verifies /test command behavior when scraping fails."""
         self.db.add_subscription("c910335", 111, 222, "msg", "", False)
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
@@ -287,32 +343,39 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
                 await self.commands_cog.test_notify.callback(
                     self.commands_cog, mock_interaction, "c910335", False
                 )
-        self.assertIn("No posts found", mock_interaction.followup.send.call_args[0][0])
+        self.assertIn(
+            "No posts found", mock_interaction.followup.send.call_args[0][0]
+        )
 
         # 2. Scraper raises exception
         mock_interaction.followup.send.reset_mock()
         with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
             with mock.patch(
-                "scraper.scrape_user_posts", side_effect=Exception("Scrape error")
+                "scraper.scrape_user_posts",
+                side_effect=Exception("Scrape error"),
             ):
                 await self.commands_cog.test_notify.callback(
                     self.commands_cog, mock_interaction, "c910335", False
                 )
-        self.assertIn("Test Failed", mock_interaction.followup.send.call_args[0][0])
+        self.assertIn(
+            "Test Failed", mock_interaction.followup.send.call_args[0][0]
+        )
 
     async def test_autocomplete_username_with_active_subscription(self) -> None:
-        """Verifies autocomplete_username returns the subscribed profile choices."""
+        """Verifies autocomplete_username returns matching choices."""
         self.db.add_subscription("c910335", 111, 222, "msg1", "", False)
         self.db.update_display_name("c910335", "達人")
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
         mock_interaction.channel_id = 111
 
-        choices = await self.commands_cog.autocomplete_username(mock_interaction, "c91")
+        choices = await self.commands_cog.autocomplete_username(
+            mock_interaction, "c91"
+        )
         self.assertEqual(len(choices), 1)
 
     async def test_test_notify_not_subscribed(self) -> None:
-        """Verifies /test command behavior when channel is not subscribed to profile."""
+        """Verifies /test command behavior when not subscribed."""
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
         mock_interaction.channel_id = 111
         mock_interaction.guild_id = 222
@@ -348,13 +411,19 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         mock_interaction.channel_id = 111
 
         with mock.patch.object(
-            self.commands_cog, "autocomplete_username", new_callable=mock.AsyncMock
+            self.commands_cog,
+            "autocomplete_username",
+            new_callable=mock.AsyncMock,
         ) as mock_user:
-            await self.commands_cog.subscribe_username_auto(mock_interaction, "foo")
+            await self.commands_cog.subscribe_username_auto(
+                mock_interaction, "foo"
+            )
             mock_user.assert_called_once_with(mock_interaction, "foo")
 
             mock_user.reset_mock()
-            await self.commands_cog.unsubscribe_username_auto(mock_interaction, "foo")
+            await self.commands_cog.unsubscribe_username_auto(
+                mock_interaction, "foo"
+            )
             mock_user.assert_called_once_with(mock_interaction, "foo")
 
             mock_user.reset_mock()
@@ -362,9 +431,13 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
             mock_user.assert_called_once_with(mock_interaction, "foo")
 
         with mock.patch.object(
-            self.commands_cog, "autocomplete_message", new_callable=mock.AsyncMock
+            self.commands_cog,
+            "autocomplete_message",
+            new_callable=mock.AsyncMock,
         ) as mock_msg:
-            await self.commands_cog.subscribe_message_auto(mock_interaction, "foo")
+            await self.commands_cog.subscribe_message_auto(
+                mock_interaction, "foo"
+            )
             mock_msg.assert_called_once_with(mock_interaction, "foo")
 
 
