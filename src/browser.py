@@ -1,5 +1,7 @@
 """Playwright browser instance proxy/wrapper."""
 
+from typing import Any
+
 from playwright import async_api
 
 
@@ -7,6 +9,7 @@ class Browser:
     """Wraps a Playwright browser instance, implementing new_context and close."""
 
     def __init__(self) -> None:
+        """Initializes the browser proxy state placeholders."""
         self._playwright: async_api.Playwright | None = None
         self._raw_browser: async_api.Browser | None = None
 
@@ -35,7 +38,7 @@ class Browser:
             await self._playwright.stop()
             self._playwright = None
 
-    async def new_context(self, **kwargs) -> async_api.BrowserContext:
+    async def new_context(self, **kwargs: Any) -> async_api.BrowserContext:
         """Creates a new BrowserContext using default or custom parameters.
 
         Args:

@@ -4,6 +4,8 @@ import json
 import re
 from typing import Any
 
+from playwright import async_api
+
 import browser
 import data
 
@@ -174,7 +176,7 @@ async def scrape_user_posts(
             # Intelligent Page Waiting: Wait for post elements or profile link.
             try:
                 await page.wait_for_selector('a[href*="/post/"]', timeout=3000)
-            except Exception:  # pylint: disable=broad-except
+            except async_api.Error:
                 await page.wait_for_timeout(1000)
 
             # Dismiss login modal by pressing Escape

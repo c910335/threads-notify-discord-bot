@@ -74,12 +74,37 @@ All commands are restricted to server administrators.
   - `silent` (Boolean): If true, the test notification will be visible only to you (ephemeral).
 - `/list`: List the active subscriptions for the current channel (only visible to the command caller).
 
-## Testing
+## Development
+
+### Code Formatting
+
+This project uses the `black` formatter to maintain clean and consistent code styling. To format code files:
+
+```sh
+black src/ tests/
+```
+
+### Linting
+
+This project uses `pylint` for static code analysis. To run the linter:
+
+```sh
+PYTHONPATH=src pylint src/ tests/
+```
+
+### Testing & Coverage
 
 Run the unit test suite:
 
 ```sh
 PYTHONPATH=src python -m unittest discover -s tests -p "*_test.py" -t .
+```
+
+To run tests with code coverage reporting:
+
+```sh
+PYTHONPATH=src coverage run --source=src -m unittest discover -s tests -p "*_test.py" -t .
+coverage report -m
 ```
 
 ## Contributing

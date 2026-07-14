@@ -1,4 +1,6 @@
-# pylint: disable=missing-module-docstring,protected-access
+"""Unit tests for Playwright browser proxy manager."""
+
+# pylint: disable=protected-access
 
 import unittest
 from unittest import mock
@@ -23,7 +25,9 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
         async_pw_mock.start = mock.AsyncMock(return_value=mock_playwright)
 
         mgr = browser.Browser()
-        with mock.patch("browser.async_api.async_playwright", return_value=async_pw_mock):
+        with mock.patch(
+            "browser.async_api.async_playwright", return_value=async_pw_mock
+        ):
             # 1. Start browser
             await mgr.start()
             self.assertIsNotNone(mgr._raw_browser)
@@ -60,7 +64,9 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
         async_pw_mock.start = mock.AsyncMock(return_value=mock_playwright)
 
         mgr = browser.Browser()
-        with mock.patch("browser.async_api.async_playwright", return_value=async_pw_mock):
+        with mock.patch(
+            "browser.async_api.async_playwright", return_value=async_pw_mock
+        ):
             # Test lazy initialization inside new_context
             ctx = await mgr.new_context()
             self.assertEqual(ctx, mock_context)

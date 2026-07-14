@@ -40,6 +40,10 @@ jobs:
         coverage run --source=src -m unittest discover -s tests -p "*_test.py" -t .
         coverage report -m
 
+    - name: Run Black code formatter check
+      run: |
+        black --check src/ tests/
+
     - name: Run Pylint linter
       env:
         PYTHONPATH: src

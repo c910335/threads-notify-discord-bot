@@ -40,10 +40,9 @@ class ThreadsCommands(commands.Cog):
         return choices[:25]
 
     async def autocomplete_message(
-        self, interaction: discord.Interaction, current: str
+        self, _interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
         """Helper to autocomplete message template options."""
-        del interaction  # Unused
         return [
             app_commands.Choice(name=t, value=t)
             for t in config.NOTIFICATION_MESSAGE_TEMPLATES
@@ -129,9 +128,7 @@ class ThreadsCommands(commands.Cog):
 
     @app_commands.command(
         name="unsubscribe",
-        description=(
-            "Unsubscribe from a Threads profile for the current channel."
-        ),
+        description="Unsubscribe from a Threads profile for the current channel.",
     )
     @app_commands.default_permissions()
     @app_commands.describe(username="The Threads username to unsubscribe from")
@@ -148,10 +145,7 @@ class ThreadsCommands(commands.Cog):
             )
         else:
             await interaction.response.send_message(
-                (
-                    f"No active subscription found for @{username} in this"
-                    f" channel."
-                ),
+                f"No active subscription found for @{username} in this channel.",
                 ephemeral=True,
             )
 
@@ -164,9 +158,7 @@ class ThreadsCommands(commands.Cog):
 
     @app_commands.command(
         name="list",
-        description=(
-            "List all Threads subscriptions active in the current channel."
-        ),
+        description="List all Threads subscriptions active in the current channel.",
     )
     @app_commands.default_permissions()
     async def list_subs(self, interaction: discord.Interaction) -> None:
@@ -195,9 +187,7 @@ class ThreadsCommands(commands.Cog):
 
     @app_commands.command(
         name="test",
-        description=(
-            "Trigger a test notification for a subscribed Threads profile."
-        ),
+        description="Trigger a test notification for a subscribed Threads profile.",
     )
     @app_commands.default_permissions()
     @app_commands.describe(
@@ -212,9 +202,7 @@ class ThreadsCommands(commands.Cog):
         await interaction.response.defer(ephemeral=silent)
         username = username.strip().lower()
 
-        subs: list[data.SubscriptionDict] = data.db.get_subscriptions_for_user(
-            username
-        )
+        subs: list[data.SubscriptionDict] = data.db.get_subscriptions_for_user(username)
         channel_subs: list[data.SubscriptionDict] = [
             s for s in subs if s["channel_id"] == interaction.channel_id
         ]
@@ -241,9 +229,9 @@ class ThreadsCommands(commands.Cog):
                 return
 
             latest_post: data.PostDict = posts[0]
-            display_name = latest_post.get(
-                "display_name"
-            ) or data.db.get_display_name(username)
+            display_name = latest_post.get("display_name") or data.db.get_display_name(
+                username
+            )
             data.db.update_display_name(username, display_name)
 
             sub: data.SubscriptionDict = channel_subs[0]

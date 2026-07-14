@@ -1,7 +1,11 @@
-# pylint: disable=missing-module-docstring,protected-access
+"""Unit tests for Threads scraper and post extraction logic."""
+
+# pylint: disable=protected-access
 
 import unittest
 from unittest import mock
+
+from playwright import async_api
 
 import scraper
 
@@ -35,7 +39,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
                 ]
             }
         }
-        urls = scraper._extract_media(post_data)  # pylint: disable=protected-access
+        urls = scraper._extract_media(post_data)
         self.assertEqual(urls, ["https://example.com/img1_large.jpg"])
 
     def test_extract_media_carousel(self) -> None:
@@ -54,7 +58,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
                 },
             ]
         }
-        urls = scraper._extract_media(post_data)  # pylint: disable=protected-access
+        urls = scraper._extract_media(post_data)
         self.assertEqual(
             urls, ["https://example.com/slide1.jpg", "https://example.com/slide2.jpg"]
         )
@@ -72,11 +76,9 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
             "caption": {
                 "text": "Check this out!",
             },
-            "video_versions": [
-                {"url": "https://example.com/video.mp4"}
-            ],
+            "video_versions": [{"url": "https://example.com/video.mp4"}],
         }
-        parsed = scraper._parse_post(raw_post)  # pylint: disable=protected-access
+        parsed = scraper._parse_post(raw_post)
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed["id"], "333444")
         self.assertEqual(parsed["code"], "CodeABC")
@@ -84,9 +86,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(parsed["display_name"], "Test User")
         self.assertEqual(parsed["text"], "Check this out!")
         self.assertEqual(parsed["timestamp"], 1700000000)
-        self.assertEqual(
-            parsed["url"], "https://www.threads.com/@tester/post/CodeABC"
-        )
+        self.assertEqual(parsed["url"], "https://www.threads.com/@tester/post/CodeABC")
         self.assertEqual(parsed["media_urls"], ["https://example.com/video.mp4"])
 
     def test_extract_posts_from_html(self) -> None:
@@ -183,10 +183,10 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
 
     def test_get_numerical_id(self) -> None:
         """Verifies _get_numerical_id parsing behavior."""
-        self.assertEqual(scraper._get_numerical_id({"id": "12345_678"}), 12345)  # pylint: disable=protected-access
-        self.assertEqual(scraper._get_numerical_id({"id": "abc_678"}), 0)  # pylint: disable=protected-access
-        self.assertEqual(scraper._get_numerical_id({"id": ""}), 0)  # pylint: disable=protected-access
-        self.assertEqual(scraper._get_numerical_id({}), 0)  # pylint: disable=protected-access
+        self.assertEqual(scraper._get_numerical_id({"id": "12345_678"}), 12345)
+        self.assertEqual(scraper._get_numerical_id({"id": "abc_678"}), 0)
+        self.assertEqual(scraper._get_numerical_id({"id": ""}), 0)
+        self.assertEqual(scraper._get_numerical_id({}), 0)
 
     async def test_scrape_user_posts_with_mock_playwright(self) -> None:
         """Verifies scrape_user_posts lifecycle using context borrowing."""
@@ -244,7 +244,9 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
         mock_page.goto = mock.AsyncMock()
         mock_page.keyboard = mock.MagicMock()
         mock_page.keyboard.press = mock.AsyncMock()
-        mock_page.wait_for_selector = mock.AsyncMock(side_effect=Exception("Timeout"))
+        mock_page.wait_for_selector = mock.AsyncMock(
+            side_effect=async_api.Error("Timeout")
+        )
         mock_page.wait_for_timeout = mock.AsyncMock()
         mock_page.content = mock.AsyncMock(return_value="<html>Mock HTML</html>")
         mock_page.close = mock.AsyncMock()
@@ -263,10 +265,10 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
     def test_parser_defensive_checks(self) -> None:
         """Verifies defensive checks and invalid payloads handling in parser."""
         # 1. _parse_post with non-dict input
-        self.assertIsNone(scraper._parse_post("not a dict"))  # pylint: disable=protected-access
+        self.assertIsNone(scraper._parse_post("not a dict"))
 
         # 2. _parse_post with missing id
-        self.assertIsNone(scraper._parse_post({"code": "C123"}))  # pylint: disable=protected-access
+        self.assertIsNone(scraper._parse_post({"code": "C123"}))
 
         # 3. extract_posts_from_html with invalid JSON, empty, or malformed structures
         mock_html = """

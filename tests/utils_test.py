@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring
+"""Unit tests for formatting and logging utility functions."""
 
 import unittest
 from unittest import mock
@@ -61,10 +61,7 @@ class UtilsTest(unittest.IsolatedAsyncioTestCase):
         }
 
         result = utils.format_notification(sub, post, "Test User")
-        expected = (
-            "https://www.threads.com/@testuser/post/C123\n"
-            "Test User 有新貼文！"
-        )
+        expected = "https://www.threads.com/@testuser/post/C123\nTest User 有新貼文！"
         self.assertEqual(result, expected)
 
     def test_format_notification_prepends_mention_if_not_in_message(self) -> None:
@@ -89,8 +86,7 @@ class UtilsTest(unittest.IsolatedAsyncioTestCase):
 
         result = utils.format_notification(sub, post, "Test User")
         expected = (
-            "<@&789> Test User 發文囉！ "
-            "https://www.threads.com/@testuser/post/C123"
+            "<@&789> Test User 發文囉！ https://www.threads.com/@testuser/post/C123"
         )
         self.assertEqual(result, expected)
 

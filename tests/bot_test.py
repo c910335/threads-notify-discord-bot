@@ -1,4 +1,6 @@
-# pylint: disable=missing-module-docstring,protected-access
+"""Unit tests for ThreadsBot main discord client wrapper."""
+
+# pylint: disable=protected-access
 
 import unittest
 from unittest import mock
@@ -21,7 +23,9 @@ class ThreadsBotTest(unittest.IsolatedAsyncioTestCase):
         bot_instance.load_extension = mock.AsyncMock()
         bot_instance.tree.sync = mock.AsyncMock()
 
-        with mock.patch("browser.Browser.start", new_callable=mock.AsyncMock) as mock_start:
+        with mock.patch(
+            "browser.Browser.start", new_callable=mock.AsyncMock
+        ) as mock_start:
             await bot_instance.setup_hook()
             mock_start.assert_called_once()
 
@@ -55,9 +59,7 @@ class ThreadsBotTest(unittest.IsolatedAsyncioTestCase):
 
         with mock.patch("builtins.print") as mock_print:
             await bot_instance.on_ready()
-            mock_print.assert_called_once_with(
-                "Logged in as ThreadsBot (ID: 12345)"
-            )
+            mock_print.assert_called_once_with("Logged in as ThreadsBot (ID: 12345)")
 
 
 if __name__ == "__main__":

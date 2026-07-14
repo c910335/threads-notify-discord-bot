@@ -38,7 +38,7 @@ class DataStore:
     SEEN_FILE = "seen_posts.json"
     DISPLAY_NAMES_FILE = "display_names.json"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initializes the locks and internal storage caches."""
         self.lock = threading.Lock()
         self.subscriptions: list[SubscriptionDict] = []
@@ -173,13 +173,15 @@ class DataStore:
             existing["server_id"] = server_id
         else:
             # Create new
-            self.subscriptions.append({
-                "username": username,
-                "channel_id": channel_id,
-                "server_id": server_id,
-                "message": message,
-                "mention": mention,
-            })
+            self.subscriptions.append(
+                {
+                    "username": username,
+                    "channel_id": channel_id,
+                    "server_id": server_id,
+                    "message": message,
+                    "mention": mention,
+                }
+            )
 
         self.save_subscriptions()
         return True
@@ -197,7 +199,8 @@ class DataStore:
         username = username.strip().lower()
         original_len = len(self.subscriptions)
         self.subscriptions = [
-            sub for sub in self.subscriptions
+            sub
+            for sub in self.subscriptions
             if not (sub["username"] == username and sub["channel_id"] == channel_id)
         ]
 
@@ -226,9 +229,7 @@ class DataStore:
         Returns:
             A list of matching subscription dictionaries.
         """
-        return [
-            sub for sub in self.subscriptions if sub["channel_id"] == channel_id
-        ]
+        return [sub for sub in self.subscriptions if sub["channel_id"] == channel_id]
 
     def get_all_sub_usernames(self) -> set[str]:
         """Gets the set of all unique usernames currently subscribed to.

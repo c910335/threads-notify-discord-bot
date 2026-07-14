@@ -1,4 +1,6 @@
-# pylint: disable=protected-access,duplicate-code,missing-module-docstring
+"""Unit tests for ThreadsMonitor background polling loop cog."""
+
+# pylint: disable=protected-access,duplicate-code,consider-using-with
 
 import os
 import tempfile
@@ -18,13 +20,9 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         """Sets up custom testing file paths and mock bot context."""
-        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())  # pylint: disable=consider-using-with
-        data.DataStore.DATA_FILE = os.path.join(
-            self.test_dir, "test_monitor_data.json"
-        )
-        data.DataStore.SEEN_FILE = os.path.join(
-            self.test_dir, "test_monitor_seen.json"
-        )
+        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())
+        data.DataStore.DATA_FILE = os.path.join(self.test_dir, "test_monitor_data.json")
+        data.DataStore.SEEN_FILE = os.path.join(self.test_dir, "test_monitor_seen.json")
         data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
             self.test_dir, "test_monitor_display_names.json"
         )
@@ -75,7 +73,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         ]
 
         with mock.patch("scraper.scrape_user_posts", return_value=mock_posts):
-            await self.monitor_cog._check_profile("c910335")  # pylint: disable=protected-access
+            await self.monitor_cog._check_profile("c910335")
 
         # Verify only the new post is marked seen and notified
         self.assertTrue(self.db.is_post_seen("c910335", "new_post_id"))
@@ -127,7 +125,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         """Verifies check_profile behavior with no posts and with a newly subscribed user."""
         # 1. No posts found
         with mock.patch("scraper.scrape_user_posts", return_value=[]):
-            await self.monitor_cog._check_profile("c910335")  # pylint: disable=protected-access
+            await self.monitor_cog._check_profile("c910335")
         self.assertNotIn("c910335", self.db.seen_posts)
 
         # 2. Newly subscribed user (initializes seen cache without alerting)
@@ -145,7 +143,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         ]
 
         with mock.patch("scraper.scrape_user_posts", return_value=mock_posts):
-            await self.monitor_cog._check_profile("c910335")  # pylint: disable=protected-access
+            await self.monitor_cog._check_profile("c910335")
 
         self.assertTrue(self.db.is_post_seen("c910335", "post1"))
 
@@ -166,9 +164,7 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
         # 1. Cached channel works
         mock_channel = mock.AsyncMock()
         self.mock_bot.get_channel.return_value = mock_channel
-        await self.monitor_cog._send_alerts(
-            "user", post, "User"
-        )  # pylint: disable=protected-access
+        await self.monitor_cog._send_alerts("user", post, "User")
         mock_channel.send.assert_called_once()
 
         # 2. Fetch channel fails
@@ -177,18 +173,14 @@ class ThreadsMonitorTest(unittest.IsolatedAsyncioTestCase):
             side_effect=discord.DiscordException("Fetch Fail")
         )
         mock_channel.send.reset_mock()
-        await self.monitor_cog._send_alerts(
-            "user", post, "User"
-        )  # pylint: disable=protected-access
+        await self.monitor_cog._send_alerts("user", post, "User")
         mock_channel.send.assert_not_called()
 
         # 3. Send fails
         self.mock_bot.get_channel.return_value = mock_channel
         mock_channel.send.side_effect = discord.DiscordException("Send Fail")
         # Should catch exception and log to stdout without crashing
-        await self.monitor_cog._send_alerts(
-            "user", post, "User"
-        )  # pylint: disable=protected-access
+        await self.monitor_cog._send_alerts("user", post, "User")
 
     async def test_monitor_report_error_cached_admin(self) -> None:
         """Verifies report_error uses cached admin channel if available."""

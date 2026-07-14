@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring
+"""Unit tests for configuration loading logic."""
 
 import importlib
 import os
@@ -24,6 +24,7 @@ class ConfigTest(unittest.TestCase):
 
     def test_load_env_loads_successfully(self) -> None:
         """Verifies that config loads settings via python-dotenv load_dotenv."""
+
         def mock_load_dotenv():
             os.environ["TNDB_DISCORD_TOKEN"] = "dotenv_token"
             os.environ["TNDB_ADMIN_CHANNEL_ID"] = "987654"

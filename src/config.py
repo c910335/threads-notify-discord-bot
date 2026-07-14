@@ -1,10 +1,12 @@
 """Configuration settings for the Threads Notification Discord Bot."""
 
 import os
+import sys
+
 import dotenv
 
 # Load .env file (skip loading during unit tests to ensure isolation)
-if "unittest" not in os.sys.modules:
+if "unittest" not in sys.modules:
     dotenv.load_dotenv()
 
 # Discord Bot Token

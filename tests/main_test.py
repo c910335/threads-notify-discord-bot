@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring
+"""Unit tests for the main bot entry point execution flow."""
 
 import unittest
 from unittest import mock

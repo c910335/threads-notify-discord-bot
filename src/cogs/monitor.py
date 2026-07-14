@@ -39,9 +39,7 @@ class ThreadsMonitor(commands.Cog):
                 await self._check_profile(username)
             except Exception:  # pylint: disable=broad-except
                 error_trace = traceback.format_exc()
-                print(
-                    f"Error checking updates for @{username}:\n{error_trace}"
-                )
+                print(f"Error checking updates for @{username}:\n{error_trace}")
                 await self.report_error(
                     f"Error scraping @{username}:\n```\n{error_trace[:1800]}\n```"
                 )
@@ -86,9 +84,7 @@ class ThreadsMonitor(commands.Cog):
 
         # Find new posts (oldest first)
         new_posts = [
-            p
-            for p in reversed(posts)
-            if not data.db.is_post_seen(username, p["id"])
+            p for p in reversed(posts) if not data.db.is_post_seen(username, p["id"])
         ]
 
         for post in new_posts:
@@ -137,9 +133,7 @@ class ThreadsMonitor(commands.Cog):
         try:
             channel = self.bot.get_channel(config.ADMIN_CHANNEL_ID)
             if not channel:
-                channel = await self.bot.fetch_channel(
-                    config.ADMIN_CHANNEL_ID
-                )
+                channel = await self.bot.fetch_channel(config.ADMIN_CHANNEL_ID)
             await channel.send(message)
         except (discord.DiscordException, OSError) as e:
             print(f"Failed to report error to admin channel: {e}")

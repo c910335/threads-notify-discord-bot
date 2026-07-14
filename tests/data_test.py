@@ -1,4 +1,6 @@
-# pylint: disable=protected-access,duplicate-code,missing-module-docstring
+"""Unit tests for the DataStore thread-safe JSON persistence storage layer."""
+
+# pylint: disable=protected-access,duplicate-code,consider-using-with
 
 import os
 import tempfile
@@ -13,11 +15,9 @@ class DataStoreTest(unittest.TestCase):
 
     def setUp(self) -> None:
         """Sets up custom testing file paths and initializes a fresh store."""
-        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())  # pylint: disable=consider-using-with
+        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())
         data.DataStore.DATA_FILE = os.path.join(self.test_dir, "test_data.json")
-        data.DataStore.SEEN_FILE = os.path.join(
-            self.test_dir, "test_seen_posts.json"
-        )
+        data.DataStore.SEEN_FILE = os.path.join(self.test_dir, "test_seen_posts.json")
         data.DataStore.DISPLAY_NAMES_FILE = os.path.join(
             self.test_dir, "test_display_names.json"
         )
@@ -49,9 +49,7 @@ class DataStoreTest(unittest.TestCase):
         # Make a write attempt raise OSError on move
         with mock.patch("shutil.move", side_effect=OSError("Disk Full")):
             with self.assertRaises(OSError):
-                self.store._safe_write(
-                    data.DataStore.DATA_FILE, {"test": 123}
-                )  # pylint: disable=protected-access
+                self.store._safe_write(data.DataStore.DATA_FILE, {"test": 123})
 
     def test_add_subscription_creates_new(self) -> None:
         """Verifies that adding a new subscription stores it correctly."""
@@ -147,7 +145,9 @@ class DataStoreTest(unittest.TestCase):
 
     def test_save_failures_dont_crash(self) -> None:
         """Verifies save failures in databases don't raise exceptions."""
-        with mock.patch.object(self.store, "_safe_write", side_effect=OSError("Disk Full")):
+        with mock.patch.object(
+            self.store, "_safe_write", side_effect=OSError("Disk Full")
+        ):
             # These should catch and print without raising exceptions
             self.store.save_subscriptions()
             self.store.save_seen_posts()

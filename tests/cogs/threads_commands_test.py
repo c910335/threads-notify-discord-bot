@@ -1,4 +1,6 @@
-# pylint: disable=protected-access,duplicate-code,missing-module-docstring
+"""Unit tests for ThreadsCommands slash commands cog."""
+
+# pylint: disable=protected-access,duplicate-code,consider-using-with
 
 import os
 import tempfile
@@ -18,7 +20,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self) -> None:
         """Sets up custom testing file paths and mock bot context."""
-        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())  # pylint: disable=consider-using-with
+        self.test_dir = self.enterContext(tempfile.TemporaryDirectory())
         data.DataStore.DATA_FILE = os.path.join(
             self.test_dir, "test_commands_data.json"
         )
@@ -252,9 +254,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         mock_interaction.channel_id = 111
 
         # Test autocomplete username
-        choices = await self.commands_cog.autocomplete_username(
-            mock_interaction, "c91"
-        )
+        choices = await self.commands_cog.autocomplete_username(mock_interaction, "c91")
         self.assertEqual(len(choices), 1)
         self.assertEqual(choices[0].name, "達人 (@c910335)")
         self.assertEqual(choices[0].value, "c910335")
@@ -287,9 +287,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
                 await self.commands_cog.test_notify.callback(
                     self.commands_cog, mock_interaction, "c910335", False
                 )
-        self.assertIn(
-            "No posts found", mock_interaction.followup.send.call_args[0][0]
-        )
+        self.assertIn("No posts found", mock_interaction.followup.send.call_args[0][0])
 
         # 2. Scraper raises exception
         mock_interaction.followup.send.reset_mock()
@@ -300,9 +298,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
                 await self.commands_cog.test_notify.callback(
                     self.commands_cog, mock_interaction, "c910335", False
                 )
-        self.assertIn(
-            "Test Failed", mock_interaction.followup.send.call_args[0][0]
-        )
+        self.assertIn("Test Failed", mock_interaction.followup.send.call_args[0][0])
 
     async def test_autocomplete_username_with_active_subscription(self) -> None:
         """Verifies autocomplete_username returns the subscribed profile choices."""
@@ -312,9 +308,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
         mock_interaction.channel_id = 111
 
-        choices = await self.commands_cog.autocomplete_username(
-            mock_interaction, "c91"
-        )
+        choices = await self.commands_cog.autocomplete_username(mock_interaction, "c91")
         self.assertEqual(len(choices), 1)
 
     async def test_test_notify_not_subscribed(self) -> None:
@@ -356,15 +350,11 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(
             self.commands_cog, "autocomplete_username", new_callable=mock.AsyncMock
         ) as mock_user:
-            await self.commands_cog.subscribe_username_auto(
-                mock_interaction, "foo"
-            )
+            await self.commands_cog.subscribe_username_auto(mock_interaction, "foo")
             mock_user.assert_called_once_with(mock_interaction, "foo")
 
             mock_user.reset_mock()
-            await self.commands_cog.unsubscribe_username_auto(
-                mock_interaction, "foo"
-            )
+            await self.commands_cog.unsubscribe_username_auto(mock_interaction, "foo")
             mock_user.assert_called_once_with(mock_interaction, "foo")
 
             mock_user.reset_mock()
@@ -374,9 +364,7 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         with mock.patch.object(
             self.commands_cog, "autocomplete_message", new_callable=mock.AsyncMock
         ) as mock_msg:
-            await self.commands_cog.subscribe_message_auto(
-                mock_interaction, "foo"
-            )
+            await self.commands_cog.subscribe_message_auto(mock_interaction, "foo")
             mock_msg.assert_called_once_with(mock_interaction, "foo")
 
 
