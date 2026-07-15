@@ -42,7 +42,8 @@ Tracks the active subscriptions across Discord channels:
     "channel_id": 123456789012345678,
     "server_id": 987654321098765432,
     "message": "Hey {mention}! {name} posted a new update!",
-    "mention": "<@&1122334455667788>"
+    "mention": "<@&1122334455667788>",
+    "include_media": false
   }
 ]
 ```
@@ -69,6 +70,7 @@ Adapting the slash-command interface to Threads:
   - `message` (String): The template message to send (supports `{name}`, `{text}`, `{url}`, `{mention}`).
   - `mention` (Mentionable, Optional): The user or role to ping.
   - `overwrite` (Boolean, Optional): Overwrite existing subscription for this channel (defaults to `False`).
+  - `include_media` (Boolean, Optional): Include images/videos in notifications (defaults to `False`).
 - `/unsubscribe`: Remove a subscription.
   - `username` (String): The Threads username to unsubscribe from.
 - `/list`: Display all active subscriptions in the current channel (only visible to the caller).
@@ -105,3 +107,15 @@ To reduce CPU/memory overhead and prevent spawning multiple heavy browser proces
 - **Single Browser Process**: A single Playwright Chromium browser is launched when the bot starts (`setup_hook()`) and terminated when the bot shuts down (`close()`).
 - **Context Isolation**: For each scraping task, the scraper leases a clean, isolated `BrowserContext` from the shared browser instance. This prevents cookie/session bleed while avoiding browser launch latency.
 - **Intelligent Waiting**: The scraper waits dynamically for the target profile's posts selector (`a[href*="/post/"]`) rather than using hardcoded sleep timeouts, falling back to a quick 1-second delay if the profile has no posts.
+
+---
+
+## 7. Media Gallery Notification Rendering
+
+When `include_media` is enabled (`True`) for a subscription:
+- If the post contains image or video URLs, the bot attaches a native Discord `discord.ui.MediaGallery` view via `LayoutView` v2 components.
+- The scraper extracts media URLs from:
+  1. `carousel_media` (for carousel posts)
+  2. `video_versions` and `image_versions2` (for single-item posts)
+  3. `text_post_app_info -> linked_inline_media` (for attached shared reels or video attachments)
+- If the post contains more than 10 media items, the bot appends a warning note to notify the user that only the first 10 items can be shown in the gallery.

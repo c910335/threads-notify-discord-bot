@@ -64,30 +64,41 @@ All commands are restricted to server administrators.
 
 - `/subscribe`: Subscribe to a Threads user profile for the current channel.
   - `username` (String): The username of the Threads profile (e.g. `c910335`).
-  - `message` (String): The message template to send when the user posts (supports `{name}`, `{text}`, `{url}`, `{mention}`, autocomplete templates available).
+  - `message` (String): The message template to send when the user posts
+    (supports `{name}`, `{text}`, `{url}`, `{mention}`). Autocomplete templates
+    are available.
   - `mention` (Mentionable, Optional): The user or role to notify.
-  - `overwrite` (Boolean, Optional): Whether to overwrite an existing subscription (defaults to `False`).
+  - `overwrite` (Boolean, Optional): Whether to overwrite an existing
+    subscription (defaults to `False`).
+  - `include_media` (Boolean, Optional): Whether to include post images/videos
+    in notifications (defaults to `False`).
 - `/unsubscribe`: Unsubscribe from a Threads profile for the current channel.
   - `username` (String): The Threads username to unsubscribe from.
 - `/test`: Trigger a test notification to the current channel.
   - `username` (String): The Threads username to send a test notification for.
-  - `silent` (Boolean): If true, the test notification will be visible only to you (ephemeral).
-- `/list`: List the active subscriptions for the current channel (only visible to the command caller).
+  - `silent` (Boolean): If true, the test notification will be visible only to
+    you (ephemeral).
+- `/list`: List active subscriptions for current channel (ephemeral).
 
 ## Development
 
-### Code Formatting
+### Code Formatting & Style
 
-This project uses the `black` formatter to maintain clean and consistent code styling. To format code files:
+This project uses `black` to format code and `isort` to sort imports.
 
+To format code:
 ```sh
 black src/ tests/
+```
+
+To sort and format imports:
+```sh
+isort src/ tests/
 ```
 
 ### Linting
 
 This project uses `pylint` for static code analysis. To run the linter:
-
 ```sh
 PYTHONPATH=src pylint src/ tests/
 ```
