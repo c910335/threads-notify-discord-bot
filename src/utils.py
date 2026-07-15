@@ -42,10 +42,25 @@ async def log_interaction(
             print(f"Failed to log to admin channel: {e}")
 
 
+def get_preview_text(text: str) -> str:
+    """Generates a preview of the post text up to 100 chars and 3 lines."""
+    if not text:
+        return ""
+    lines = text.split("\n")
+    has_more_lines = len(lines) > 3
+    selected_lines = lines[:3]
+    joined_text = "\n".join(selected_lines)
+    if len(joined_text) > 100:
+        return joined_text[:100] + "\n..."
+    if has_more_lines:
+        return joined_text + "\n..."
+    return joined_text
+
+
 def format_notification(
     sub: data.SubscriptionDict, post: data.PostDict, display_name: str
 ) -> str:
-    """Formats the notification payload for both live checks and test commands.
+    """Formats the notification message for live and test alerts.
 
     Args:
         sub: The subscription configuration dictionary.
@@ -65,9 +80,11 @@ def format_notification(
     if mention_str and "{mention}" not in message_template:
         message_template = f"{mention_str} {message_template}"
 
+    preview_text = get_preview_text(post.get("text") or "")
     msg = (
         message_template.replace("{name}", display_name)
         .replace("{text}", post.get("text") or "")
+        .replace("{preview_text}", preview_text)
         .replace("{url}", url)
         .replace("{mention}", mention_str)
     )

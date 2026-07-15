@@ -78,6 +78,30 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
             mock_interaction.response.send_message.call_args[0][0],
         )
 
+    async def test_subscribe_command_rejects_backticks(self) -> None:
+        """Verifies /subscribe command rejects templates with backticks."""
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.send_message = mock.AsyncMock()
+
+        await self.commands_cog.subscribe.callback(
+            self.commands_cog,
+            interaction=mock_interaction,
+            username="c910335",
+            message="hello `backtick`",
+            mention=None,
+            overwrite=False,
+            include_media=False,
+        )
+
+        mock_interaction.response.send_message.assert_called_once()
+        self.assertIn(
+            "cannot contain backticks",
+            mock_interaction.response.send_message.call_args[0][0],
+        )
+        # Check no subscription was added
+        self.assertEqual(len(self.db.list_subscriptions(111)), 0)
+
     async def test_subscribe_command_conflict_without_overwrite(self) -> None:
         """Verifies /subscribe command rejects duplicates without overwrite."""
         self.db.add_subscription("c910335", 111, 222, "msg", "", False)
@@ -181,7 +205,13 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
     async def test_list_subs_command_populated(self) -> None:
         """Verifies /list command formats and displays subscriptions."""
         self.db.add_subscription(
-            "c910335", 111, 222, "msg", "<@&1>", False, include_media=False
+            "c910335",
+            111,
+            222,
+            "msg\n>>> {text}",
+            "<@&1>",
+            False,
+            include_media=False,
         )
 
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
@@ -205,6 +235,10 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertIn(
             "c910335",
+            mock_interaction.response.send_message.call_args[0][0],
+        )
+        self.assertIn(
+            "```\nmsg\n>>> {text}\n```",
             mock_interaction.response.send_message.call_args[0][0],
         )
         self.assertIn(

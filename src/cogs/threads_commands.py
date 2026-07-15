@@ -60,8 +60,8 @@ class ThreadsCommands(commands.Cog):
     @app_commands.describe(
         username="The Threads username to subscribe to (e.g. c910335)",
         message=(
-            "Notification message template (supports {name}, {text}, {url},"
-            " {mention})"
+            "Message template (supports {name}, {text}, {preview_text}, "
+            "{url}, {mention})"
         ),
         mention="The role or user to notify when a new post is found",
         overwrite=(
@@ -84,6 +84,13 @@ class ThreadsCommands(commands.Cog):
         include_media: bool = False,
     ) -> None:
         """Subscribes the current channel to a Threads user's new posts."""
+        if "`" in message:
+            await interaction.response.send_message(
+                "Error: Message template cannot contain backticks (`).",
+                ephemeral=True,
+            )
+            return
+
         await utils.log_interaction(
             interaction,
             username=username,
@@ -210,7 +217,7 @@ class ThreadsCommands(commands.Cog):
                 f"{idx + 1}. **{display_name}** (@{sub['username']})"
                 f"{mention_desc}{media_desc}:"
             )
-            lines.append(f"{label} `{sub['message']}`")
+            lines.append(f"{label}\n```\n{sub['message']}\n```")
 
         await interaction.response.send_message(
             "\n".join(lines), ephemeral=True

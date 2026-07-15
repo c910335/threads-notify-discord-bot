@@ -95,6 +95,58 @@ class UtilsTest(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result, expected)
 
+    def test_get_preview_text_logic(self) -> None:
+        """Verifies get_preview_text helper logic for characters and lines."""
+        # 1. Empty text
+        self.assertEqual(utils.get_preview_text(""), "")
+
+        # 2. Text under 100 chars, under 3 lines
+        text1 = "line1\nline2"
+        self.assertEqual(utils.get_preview_text(text1), "line1\nline2")
+
+        # 3. Text under 100 chars, over 3 lines
+        text2 = "line1\nline2\nline3\nline4"
+        self.assertEqual(
+            utils.get_preview_text(text2), "line1\nline2\nline3\n..."
+        )
+
+        # 4. Text over 100 chars, under 3 lines
+        text3 = "a" * 110
+        self.assertEqual(utils.get_preview_text(text3), "a" * 100 + "\n...")
+
+        # 5. Text over 100 chars, over 3 lines
+        text4 = "a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40 + "\nline4"
+        expected = ("a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40)[
+            :100
+        ] + "\n..."
+        self.assertEqual(utils.get_preview_text(text4), expected)
+
+    def test_format_notification_with_preview_text(self) -> None:
+        """Verifies replacement of {preview_text} in message template."""
+        sub: data.SubscriptionDict = {
+            "username": "testuser",
+            "channel_id": 123,
+            "server_id": 456,
+            "message": "Preview:\n{preview_text}\n{url}",
+            "mention": "",
+        }
+        post: data.PostDict = {
+            "id": "post123",
+            "code": "C123",
+            "username": "testuser",
+            "display_name": "Test User",
+            "text": "line1\nline2\nline3\nline4",
+            "timestamp": 1600000000,
+            "url": "https://www.threads.com/@testuser/post/C123",
+            "media_urls": [],
+        }
+        result = utils.format_notification(sub, post, "Test User")
+        expected = (
+            "Preview:\nline1\nline2\nline3\n...\n"
+            "https://www.threads.com/@testuser/post/C123"
+        )
+        self.assertEqual(result, expected)
+
     def test_format_notification_with_include_media(self) -> None:
         """Verifies inclusion and exclusion of media URLs."""
         sub: data.SubscriptionDict = {
