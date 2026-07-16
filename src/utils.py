@@ -46,7 +46,9 @@ def get_preview_text(text: str) -> str:
     """Generates a preview of the post text.
 
     Truncates the text to at most 100 characters and 3 lines,
-    appending '...' on a new line if the text was truncated.
+    appending '...' when truncated. A line break is added
+    before '...' only if the first omitted character is itself
+    a line break.
 
     Args:
         text: The full post text to preview.
@@ -62,7 +64,8 @@ def get_preview_text(text: str) -> str:
     selected_lines = lines[:3]
     joined_text = "\n".join(selected_lines)
     if len(joined_text) > 100:
-        return joined_text[:100] + "\n..."
+        ellipsis = "\n..." if joined_text[100] == "\n" else "..."
+        return joined_text[:100] + ellipsis
     if has_more_lines:
         return joined_text + "\n..."
     return joined_text

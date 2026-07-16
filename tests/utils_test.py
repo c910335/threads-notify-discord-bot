@@ -110,16 +110,18 @@ class UtilsTest(unittest.IsolatedAsyncioTestCase):
             utils.get_preview_text(text2), "line1\nline2\nline3\n..."
         )
 
-        # 4. Text over 100 chars, under 3 lines
+        # 4. Text over 100 chars, under 3 lines (no newline at truncation)
         text3 = "a" * 110
-        self.assertEqual(utils.get_preview_text(text3), "a" * 100 + "\n...")
+        self.assertEqual(utils.get_preview_text(text3), "a" * 100 + "...")
 
-        # 5. Text over 100 chars, over 3 lines
+        # 5. Text over 100 chars, over 3 lines (no newline at truncation)
         text4 = "a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40 + "\nline4"
-        expected = ("a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40)[
-            :100
-        ] + "\n..."
+        expected = ("a" * 40 + "\n" + "b" * 40 + "\n" + "c" * 40)[:100] + "..."
         self.assertEqual(utils.get_preview_text(text4), expected)
+
+        # 6. Text over 100 chars, newline at truncation point
+        text5 = "a" * 100 + "\nextra"
+        self.assertEqual(utils.get_preview_text(text5), "a" * 100 + "\n...")
 
     def test_format_notification_with_preview_text(self) -> None:
         """Verifies replacement of {preview_text} in message template."""
