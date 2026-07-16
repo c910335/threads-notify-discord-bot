@@ -11,7 +11,7 @@ import bot
 import config
 
 
-def main():
+def main() -> None:
     """Main execution function for the bot."""
     sys.stdout.reconfigure(line_buffering=True)
     token = config.DISCORD_TOKEN

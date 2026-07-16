@@ -351,6 +351,60 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
             )
             mock_page.close.assert_called_once()
 
+    async def test_scrape_post_by_id_success(self) -> None:
+        """Verifies scrape_post_by_id successfully retrieves matched post."""
+        mock_browser = mock.MagicMock()
+        mock_context = mock.MagicMock()
+        mock_page = mock.MagicMock()
+
+        mock_browser.new_context = mock.AsyncMock(return_value=mock_context)
+        mock_context.__aenter__ = mock.AsyncMock(return_value=mock_context)
+        mock_context.__aexit__ = mock.AsyncMock()
+        mock_context.new_page = mock.AsyncMock(return_value=mock_page)
+
+        mock_page.goto = mock.AsyncMock()
+        mock_page.wait_for_selector = mock.AsyncMock()
+        mock_page.keyboard = mock.MagicMock()
+        mock_page.keyboard.press = mock.AsyncMock()
+        mock_page.wait_for_timeout = mock.AsyncMock()
+        mock_page.content = mock.AsyncMock(return_value="<html></html>")
+        mock_page.close = mock.AsyncMock()
+
+        mock_posts = [
+            {"code": "other_code", "id": "1"},
+            {"code": "target_code", "id": "2"},
+        ]
+
+        with mock.patch(
+            "scraper.extract_posts_from_html", return_value=mock_posts
+        ):
+            post = await scraper.scrape_post_by_id(mock_browser, "target_code")
+            self.assertIsNotNone(post)
+            self.assertEqual(post["code"], "target_code")
+
+    async def test_scrape_post_by_id_not_found(self) -> None:
+        """Verifies scrape_post_by_id returns None if no post matches."""
+        mock_browser = mock.MagicMock()
+        mock_context = mock.MagicMock()
+        mock_page = mock.MagicMock()
+
+        mock_browser.new_context = mock.AsyncMock(return_value=mock_context)
+        mock_context.__aenter__ = mock.AsyncMock(return_value=mock_context)
+        mock_context.__aexit__ = mock.AsyncMock()
+        mock_context.new_page = mock.AsyncMock(return_value=mock_page)
+
+        mock_page.goto = mock.AsyncMock()
+        mock_page.wait_for_selector = mock.AsyncMock()
+        mock_page.keyboard = mock.MagicMock()
+        mock_page.keyboard.press = mock.AsyncMock()
+        mock_page.wait_for_timeout = mock.AsyncMock()
+        mock_page.content = mock.AsyncMock(return_value="<html></html>")
+        mock_page.close = mock.AsyncMock()
+
+        with mock.patch("scraper.extract_posts_from_html", return_value=[]):
+            post = await scraper.scrape_post_by_id(mock_browser, "non_existent")
+            self.assertIsNone(post)
+
     def test_parser_defensive_checks(self) -> None:
         """Verifies defensive checks and invalid payloads handling in parser."""
         # 1. _parse_post with non-dict input

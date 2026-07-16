@@ -1,6 +1,7 @@
 """Unit tests for ThreadsCommands slash commands cog."""
 
 # pylint: disable=protected-access,duplicate-code,consider-using-with
+# pylint: disable=too-many-public-methods
 
 import os
 import tempfile
@@ -351,10 +352,10 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
 
         # Test autocomplete message
         msg_choices = await self.commands_cog.autocomplete_message(
-            mock_interaction, "update"
+            mock_interaction, "發布"
         )
         self.assertEqual(len(msg_choices), 1)
-        self.assertIn("update", msg_choices[0].value)
+        self.assertIn("發布", msg_choices[0].value)
 
     async def test_test_notify_no_posts_and_error(self) -> None:
         """Verifies /test command behavior when scraping fails."""
@@ -439,6 +440,172 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
         await threads_commands.setup(mock_bot)
         mock_bot.add_cog.assert_called_once()
 
+    async def test_post_command_success(self) -> None:
+        """Verifies /post command successfully handles test notification."""
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.channel_id = 111
+        mock_interaction.guild_id = 222
+        mock_interaction.user.name = "adminuser"
+        mock_interaction.command.name = "post"
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.defer = mock.AsyncMock()
+        mock_interaction.followup = mock.MagicMock()
+        mock_interaction.followup.send = mock.AsyncMock()
+
+        post_data = {
+            "id": "123_456",
+            "code": "DH_eOgcSUww",
+            "username": "c910335",
+            "display_name": "達人",
+            "text": "Hello world",
+            "timestamp": 1234567,
+            "url": "https://url",
+            "media_urls": [],
+        }
+
+        with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
+            with mock.patch(
+                "scraper.scrape_post_by_id", return_value=post_data
+            ):
+                await self.commands_cog.test_post.callback(
+                    self.commands_cog,
+                    interaction=mock_interaction,
+                    post_id="DH_eOgcSUww",
+                    message="hello {name} {url}",
+                    mention=None,
+                    include_media=False,
+                )
+
+        mock_interaction.response.defer.assert_called_once()
+        mock_interaction.followup.send.assert_called_once()
+        sent_msg = mock_interaction.followup.send.call_args[0][0]
+        self.assertIn("hello 達人 https://url", sent_msg)
+        self.assertEqual(self.db.get_display_name("c910335"), "達人")
+
+    async def test_post_command_success_with_media(self) -> None:
+        """Verifies /post command successfully includes media views."""
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.channel_id = 111
+        mock_interaction.guild_id = 222
+        mock_interaction.user.name = "adminuser"
+        mock_interaction.command.name = "post"
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.defer = mock.AsyncMock()
+        mock_interaction.followup = mock.MagicMock()
+        mock_interaction.followup.send = mock.AsyncMock()
+
+        post_data = {
+            "id": "123_456",
+            "code": "DH_eOgcSUww",
+            "username": "c910335",
+            "display_name": "達人",
+            "text": "Hello world",
+            "timestamp": 1234567,
+            "url": "https://url",
+            "media_urls": ["https://img.jpg"],
+        }
+
+        with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
+            with mock.patch(
+                "scraper.scrape_post_by_id", return_value=post_data
+            ):
+                await self.commands_cog.test_post.callback(
+                    self.commands_cog,
+                    interaction=mock_interaction,
+                    post_id="DH_eOgcSUww",
+                    message="hello {name} {url}",
+                    mention=None,
+                    include_media=True,
+                )
+
+        mock_interaction.response.defer.assert_called_once_with(ephemeral=False)
+        mock_interaction.followup.send.assert_called_once()
+        kwargs = mock_interaction.followup.send.call_args[1]
+        self.assertIn("view", kwargs)
+        self.assertIsNotNone(kwargs["view"])
+
+    async def test_post_command_not_found(self) -> None:
+        """Verifies /post command handles case when post is not found."""
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.channel_id = 111
+        mock_interaction.guild_id = 222
+        mock_interaction.user.name = "adminuser"
+        mock_interaction.command.name = "post"
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.defer = mock.AsyncMock()
+        mock_interaction.followup = mock.MagicMock()
+        mock_interaction.followup.send = mock.AsyncMock()
+
+        with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
+            with mock.patch("scraper.scrape_post_by_id", return_value=None):
+                await self.commands_cog.test_post.callback(
+                    self.commands_cog,
+                    interaction=mock_interaction,
+                    post_id="DH_eOgcSUww",
+                    message="hello {name}",
+                    mention=None,
+                    include_media=False,
+                )
+
+        mock_interaction.followup.send.assert_called_once()
+        self.assertIn(
+            "No post found",
+            mock_interaction.followup.send.call_args[0][0],
+        )
+
+    async def test_post_command_error(self) -> None:
+        """Verifies /post command handles scraping exceptions gracefully."""
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.channel_id = 111
+        mock_interaction.guild_id = 222
+        mock_interaction.user.name = "adminuser"
+        mock_interaction.command.name = "post"
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.defer = mock.AsyncMock()
+        mock_interaction.followup = mock.MagicMock()
+        mock_interaction.followup.send = mock.AsyncMock()
+
+        with mock.patch.object(config, "ADMIN_CHANNEL_ID", 0):
+            with mock.patch(
+                "scraper.scrape_post_by_id",
+                side_effect=Exception("Scrape error"),
+            ):
+                await self.commands_cog.test_post.callback(
+                    self.commands_cog,
+                    interaction=mock_interaction,
+                    post_id="DH_eOgcSUww",
+                    message="hello {name}",
+                    mention=None,
+                    include_media=False,
+                )
+
+        mock_interaction.followup.send.assert_called_once()
+        self.assertIn(
+            "Test Failed for post",
+            mock_interaction.followup.send.call_args[0][0],
+        )
+
+    async def test_post_command_rejects_backticks(self) -> None:
+        """Verifies /post command rejects message template with backticks."""
+        mock_interaction = mock.MagicMock(spec=discord.Interaction)
+        mock_interaction.response = mock.MagicMock()
+        mock_interaction.response.send_message = mock.AsyncMock()
+
+        await self.commands_cog.test_post.callback(
+            self.commands_cog,
+            interaction=mock_interaction,
+            post_id="DH_eOgcSUww",
+            message="hello `backtick`",
+            mention=None,
+            include_media=False,
+        )
+
+        mock_interaction.response.send_message.assert_called_once()
+        self.assertIn(
+            "cannot contain backticks",
+            mock_interaction.response.send_message.call_args[0][0],
+        )
+
     async def test_autocomplete_wrappers(self) -> None:
         """Verifies autocomplete wrappers call the underlying handler."""
         mock_interaction = mock.MagicMock(spec=discord.Interaction)
@@ -470,6 +637,12 @@ class ThreadsCommandsTest(unittest.IsolatedAsyncioTestCase):
             new_callable=mock.AsyncMock,
         ) as mock_msg:
             await self.commands_cog.subscribe_message_auto(
+                mock_interaction, "foo"
+            )
+            mock_msg.assert_called_once_with(mock_interaction, "foo")
+
+            mock_msg.reset_mock()
+            await self.commands_cog.test_post_message_auto(
                 mock_interaction, "foo"
             )
             mock_msg.assert_called_once_with(mock_interaction, "foo")

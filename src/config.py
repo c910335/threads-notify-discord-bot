@@ -24,10 +24,11 @@ CHECK_DELAY_SECONDS = int(os.getenv("TNDB_CHECK_DELAY_SECONDS", "5"))
 # Predefined message templates offered as autocomplete choices for /subscribe
 NOTIFICATION_MESSAGE_TEMPLATES = [
     "{mention} {name} 有新貼文！",
-    "{mention} {name} 發文囉！",
-    "{name} 發布了新貼文： {url}",
-    "{name} posted a new update: {url}",
+    "{name} 發文囉！",
     "{mention} {name} 發布了新貼文： {url}",
-    "{mention} **{name}** 發文囉！\n{url}\n>>> {text}",
-    "**{name}** posted: {text}\n{url}",
+    "{mention} **{name}** 發文囉！\n>>> {text}",
+    "{mention} **{name}** 發文囉！\n>>> {preview_text}",
+    "**{name}**:\n>>> {text}",
+    "**{name}**:\n{preview_text}",
+    "{text}",
 ]

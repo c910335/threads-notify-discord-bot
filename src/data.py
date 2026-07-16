@@ -122,10 +122,10 @@ class DataStore:
             temp_path = tf.name
         try:
             os.replace(temp_path, filepath)
-        except Exception as e:
+        except Exception:  # pylint: disable=broad-except
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-            raise e
+            raise
 
     def save_subscriptions(self) -> None:
         """Saves current subscriptions to data.json."""

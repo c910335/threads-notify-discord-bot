@@ -135,7 +135,7 @@ class ThreadsMonitor(commands.Cog):
         Args:
             message: The formatted error report text.
         """
-        if config.ADMIN_CHANNEL_ID == 0:
+        if not config.ADMIN_CHANNEL_ID:
             return
         try:
             channel = self.bot.get_channel(config.ADMIN_CHANNEL_ID)

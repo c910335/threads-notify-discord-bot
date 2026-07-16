@@ -34,7 +34,17 @@ def find_key_in_dict(obj: Any, target_key: str) -> list[Any]:
 
 
 def _extract_single_media_url(media_obj: dict[str, Any]) -> str | None:
-    """Helper to extract a single video or image URL from a media object."""
+    """Extracts a single video or image URL from a media object.
+
+    Prefers video over image when both are available.
+
+    Args:
+        media_obj: A raw media dictionary from the Threads
+            API containing video_versions or image_versions2.
+
+    Returns:
+        The first video or image URL found, or None.
+    """
     videos = media_obj.get("video_versions") or []
     if videos:
         return videos[0].get("url")
@@ -45,7 +55,17 @@ def _extract_single_media_url(media_obj: dict[str, Any]) -> str | None:
 
 
 def _extract_media(post_data: dict[str, Any]) -> list[str]:
-    """Helper to extract media candidate URLs (image/video) from a post."""
+    """Extracts media candidate URLs (image/video) from a post.
+
+    Checks carousel media first, then single-item media, and
+    finally linked inline media as a fallback.
+
+    Args:
+        post_data: A raw post dictionary from the Threads API.
+
+    Returns:
+        A list of media URLs found in the post.
+    """
     media_urls = []
     # 1. Carousel media
     carousel = post_data.get("carousel_media") or []
@@ -74,7 +94,16 @@ def _extract_media(post_data: dict[str, Any]) -> list[str]:
 
 
 def _parse_post(post_data: dict[str, Any]) -> data.PostDict | None:
-    """Helper to parse raw post dictionary into structured data."""
+    """Parses a raw post dictionary into a structured PostDict.
+
+    Args:
+        post_data: A raw post dictionary from the Threads
+            API JSON payload.
+
+    Returns:
+        A PostDict with extracted fields, or None if the
+        input is invalid or missing a post ID.
+    """
     if not isinstance(post_data, dict):
         return None
     post_id = post_data.get("id")
@@ -170,20 +199,23 @@ def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
     return sorted_posts
 
 
-async def scrape_user_posts(
-    browser_inst: browser.Browser, username: str
+async def _scrape_page_and_extract_posts(
+    browser_inst: browser.Browser, url: str
 ) -> list[data.PostDict]:
-    """Launches Playwright Chromium and scrapes posts for a user profile.
+    """Loads a Threads page with Playwright and extracts posts.
+
+    Navigates to the given URL, waits for post elements to
+    appear, dismisses the login modal, and parses all posts
+    from the page HTML.
 
     Args:
-        browser_inst: The shared Browser instance to borrow contexts from.
-        username: The Threads username profile to scrape.
+        browser_inst: The shared Browser instance to borrow
+            contexts from.
+        url: The full Threads URL to navigate to.
 
     Returns:
-        A list of scraped post dictionaries belonging to the user.
+        A list of parsed post dictionaries from the page.
     """
-    url = f"https://www.threads.com/@{username}"
-
     async with await browser_inst.new_context() as context:
         page = await context.new_page()
         try:
@@ -200,15 +232,51 @@ async def scrape_user_posts(
             await page.wait_for_timeout(500)
 
             content = await page.content()
-            posts = extract_posts_from_html(content)
-
-            # Filter posts to ensure we only return posts of the target user
-            filtered_posts = [
-                p
-                for p in posts
-                if p["username"] and p["username"].lower() == username.lower()
-            ]
-            return filtered_posts
+            return extract_posts_from_html(content)
 
         finally:
             await page.close()
+
+
+async def scrape_user_posts(
+    browser_inst: browser.Browser, username: str
+) -> list[data.PostDict]:
+    """Launches Playwright Chromium and scrapes posts for a user profile.
+
+    Args:
+        browser_inst: The shared Browser instance to borrow contexts from.
+        username: The Threads username profile to scrape.
+
+    Returns:
+        A list of scraped post dictionaries belonging to the user.
+    """
+    url = f"https://www.threads.com/@{username}"
+    posts = await _scrape_page_and_extract_posts(browser_inst, url)
+
+    # Filter posts to ensure we only return posts of the target user
+    return [
+        p
+        for p in posts
+        if p["username"] and p["username"].lower() == username.lower()
+    ]
+
+
+async def scrape_post_by_id(
+    browser_inst: browser.Browser, post_id: str
+) -> data.PostDict | None:
+    """Launches Playwright and scrapes a specific post by its ID/code.
+
+    Args:
+        browser_inst: The shared Browser instance to borrow contexts from.
+        post_id: The shortcode of the post (e.g. "DH_eOgcSUww").
+
+    Returns:
+        The scraped post dictionary, or None if not found.
+    """
+    url = f"https://www.threads.com/post/{post_id}"
+    posts = await _scrape_page_and_extract_posts(browser_inst, url)
+
+    for p in posts:
+        if p["code"] == post_id:
+            return p
+    return None

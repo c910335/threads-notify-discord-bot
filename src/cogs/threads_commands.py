@@ -309,6 +309,114 @@ class ThreadsCommands(commands.Cog):
         """Autocompletes username parameter for test command."""
         return await self.autocomplete_username(interaction, current)
 
+    @app_commands.command(
+        name="post",
+        description=(
+            "Send a one-time test notification for a specific Threads post."
+        ),
+    )
+    @app_commands.default_permissions()
+    @app_commands.describe(
+        post_id="The specific Threads post ID/code (e.g. DH_eOgcSUww)",
+        message=(
+            "Message template (supports {name}, {text}, {preview_text}, "
+            "{url}, {mention})"
+        ),
+        mention="The role or user to notify",
+        include_media=(
+            "Whether to include post images/videos in notifications (default:"
+            " False)"
+        ),
+        silent="Whether to send the notification silently (default: False)",
+    )
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
+    async def test_post(
+        self,
+        interaction: discord.Interaction,
+        post_id: str,
+        message: str,
+        mention: discord.Role | discord.Member | None = None,
+        include_media: bool = False,
+        silent: bool = False,
+    ) -> None:
+        """Sends a test notification for a specific post."""
+        if "`" in message:
+            await interaction.response.send_message(
+                "Error: Message template cannot contain backticks (`).",
+                ephemeral=True,
+            )
+            return
+
+        await utils.log_interaction(
+            interaction,
+            post_id=post_id,
+            message=message,
+            mention=mention,
+            include_media=include_media,
+            silent=silent,
+        )
+        await interaction.response.defer(ephemeral=silent)
+        post_id = post_id.strip()
+
+        try:
+            post: data.PostDict | None = await scraper.scrape_post_by_id(
+                self.bot.browser, post_id
+            )
+            if not post:
+                await interaction.followup.send(
+                    f"No post found with ID/code: {post_id}",
+                    ephemeral=silent,
+                )
+                return
+
+            username = post["username"]
+            display_name = post.get("display_name") or data.db.get_display_name(
+                username
+            )
+            if display_name:
+                data.db.update_display_name(username, display_name)
+
+            mention_str = mention.mention if mention else ""
+            # Prepare dummy sub configuration dictionary for formatting
+            sub: data.SubscriptionDict = {
+                "username": username,
+                "channel_id": interaction.channel_id,
+                "server_id": interaction.guild_id,
+                "message": message,
+                "mention": mention_str,
+                "include_media": include_media,
+            }
+
+            payload = utils.format_notification(sub, post, display_name)
+            view = utils.get_media_gallery_view(sub, post, payload)
+
+            print(
+                f"Trigger a test post notification for {display_name} "
+                f"(@{username}) to {interaction.channel_id}"
+            )
+            if view is not None:
+                await interaction.followup.send(view=view, ephemeral=silent)
+            else:
+                await interaction.followup.send(payload, ephemeral=silent)
+
+        except Exception:  # pylint: disable=broad-except
+            error_trace = traceback.format_exc()
+            print(f"Post command failed for {post_id}:\n{error_trace}")
+            await interaction.followup.send(
+                (
+                    f"**Test Failed for post {post_id}!**\n"
+                    f"Error details:\n```\n{error_trace[:1800]}\n```"
+                ),
+                ephemeral=silent,
+            )
+
+    @test_post.autocomplete("message")
+    async def test_post_message_auto(
+        self, interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        """Autocompletes message parameter for post command."""
+        return await self.autocomplete_message(interaction, current)
+
 
 async def setup(bot: commands.Bot) -> None:
     """Standard setup entrypoint for registering cogs in discord.py.

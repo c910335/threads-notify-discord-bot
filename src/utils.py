@@ -24,7 +24,7 @@ async def log_interaction(
         f"/{interaction.command.name} {options_str}"
     )
 
-    if config.ADMIN_CHANNEL_ID != 0:
+    if config.ADMIN_CHANNEL_ID:
         try:
             channel = interaction.client.get_channel(config.ADMIN_CHANNEL_ID)
             if not channel:
@@ -43,7 +43,18 @@ async def log_interaction(
 
 
 def get_preview_text(text: str) -> str:
-    """Generates a preview of the post text up to 100 chars and 3 lines."""
+    """Generates a preview of the post text.
+
+    Truncates the text to at most 100 characters and 3 lines,
+    appending '...' on a new line if the text was truncated.
+
+    Args:
+        text: The full post text to preview.
+
+    Returns:
+        A truncated preview string, or empty string if the
+        input is empty.
+    """
     if not text:
         return ""
     lines = text.split("\n")
