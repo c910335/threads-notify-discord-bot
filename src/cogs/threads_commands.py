@@ -56,6 +56,8 @@ class ThreadsCommands(commands.Cog):
         name="subscribe",
         description="Subscribe to a Threads profile for the current channel.",
     )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.default_permissions()
     @app_commands.describe(
         username="The Threads username to subscribe to (e.g. c910335)",
@@ -157,6 +159,8 @@ class ThreadsCommands(commands.Cog):
             "Unsubscribe from a Threads profile for the current channel."
         ),
     )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.default_permissions()
     @app_commands.describe(username="The Threads username to unsubscribe from")
     async def unsubscribe(
@@ -191,6 +195,8 @@ class ThreadsCommands(commands.Cog):
             "List all Threads subscriptions active in the current channel."
         ),
     )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.default_permissions()
     async def list_subs(self, interaction: discord.Interaction) -> None:
         """Lists active subscription configurations in the channel."""
@@ -230,6 +236,8 @@ class ThreadsCommands(commands.Cog):
             "Trigger a test notification for a subscribed Threads profile."
         ),
     )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.default_permissions()
     @app_commands.describe(
         username="The Threads username to test",
@@ -316,6 +324,8 @@ class ThreadsCommands(commands.Cog):
             "Send a one-time test notification for a specific Threads post."
         ),
     )
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     @app_commands.default_permissions()
     @app_commands.describe(
         post_id="The specific Threads post ID/code (e.g. DH_eOgcSUww)",

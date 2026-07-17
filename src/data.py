@@ -12,7 +12,7 @@ class SubscriptionDict(TypedDict):
 
     username: str
     channel_id: int
-    server_id: int
+    server_id: int | None
     message: str
     mention: str
     include_media: bool
@@ -159,7 +159,7 @@ class DataStore:
         self,
         username: str,
         channel_id: int,
-        server_id: int,
+        server_id: int | None,
         message: str,
         mention: str,
         overwrite: bool,
@@ -170,7 +170,7 @@ class DataStore:
         Args:
             username: The Threads username.
             channel_id: The Discord channel ID.
-            server_id: The Discord guild ID.
+            server_id: The Discord guild ID, or None for DMs.
             message: The notification template message.
             mention: The mention role or user string.
             overwrite: Whether to overwrite existing subscription settings.
