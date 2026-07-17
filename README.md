@@ -64,9 +64,10 @@ All commands are restricted to server administrators.
 
 - `/subscribe`: Subscribe to a Threads user profile for the current channel.
   - `username` (String): The username of the Threads profile (e.g. `c910335`).
-  - `message` (String): The message template to send when the user posts
-    (supports `{name}`, `{text}`, `{url}`, `{mention}`). Autocomplete templates
-    are available.
+  - `message` (String): The message template to send when the user posts.
+    Supports `{name}`, `{text}`, `{preview_text}`, `{quoted_text}`,
+    `{quoted_preview_text}`, `{url}`, and `{mention}`. Autocomplete
+    templates are available.
   - `mention` (Mentionable, Optional): The user or role to notify.
   - `overwrite` (Boolean, Optional): Whether to overwrite an existing
     subscription (defaults to `False`).
@@ -78,6 +79,16 @@ All commands are restricted to server administrators.
   - `username` (String): The Threads username to send a test notification for.
   - `silent` (Boolean): If true, the test notification will be visible only to
     you (ephemeral).
+- `/post`: Send a one-time test notification for a specific Threads post.
+  - `post_id` (String): The specific Threads post ID/code (e.g. `DH_eOgcSUww`).
+  - `message` (String): The message template to send. Supports `{name}`,
+    `{text}`, `{preview_text}`, `{quoted_text}`, `{quoted_preview_text}`,
+    `{url}`, and `{mention}`. Autocomplete templates are available.
+  - `mention` (Mentionable, Optional): The user or role to notify.
+  - `include_media` (Boolean, Optional): Whether to include post images/videos
+    in notifications (defaults to `False`).
+  - `silent` (Boolean, Optional): If true, the test notification will be
+    visible only to you (ephemeral, defaults to `False`).
 - `/list`: List active subscriptions for current channel (ephemeral).
 
 ## Development
