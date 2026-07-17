@@ -26,6 +26,7 @@ class ConfigTest(unittest.TestCase):
         """Verifies that config loads settings via python-dotenv load_dotenv."""
 
         def mock_load_dotenv():
+            """Mocks the load_dotenv call to set test variables."""
             os.environ["TNDB_DISCORD_TOKEN"] = "dotenv_token"
             os.environ["TNDB_ADMIN_CHANNEL_ID"] = "987654"
             return True
@@ -42,3 +43,7 @@ class ConfigTest(unittest.TestCase):
 
                 self.assertEqual(config.DISCORD_TOKEN, "dotenv_token")
                 self.assertEqual(config.ADMIN_CHANNEL_ID, 987654)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,5 +1,7 @@
 """Unit tests for formatting and logging utility functions."""
 
+# pylint: disable=protected-access
+
 import unittest
 from unittest import mock
 
@@ -148,6 +150,66 @@ class UtilsTest(unittest.IsolatedAsyncioTestCase):
             "https://www.threads.com/@testuser/post/C123"
         )
         self.assertEqual(result, expected)
+
+    def test_quote_text_logic(self) -> None:
+        """Verifies _quote_text helper wraps lines with '> '."""
+        # 1. Empty text
+        self.assertEqual(utils._quote_text(""), "")
+
+        # 2. Whitespace-only text
+        self.assertEqual(utils._quote_text("   \n  "), "")
+
+        # 3. Single line
+        self.assertEqual(utils._quote_text("hello"), "\n> hello\n")
+
+        # 4. Multiple lines
+        result = utils._quote_text("line1\nline2\nline3")
+        self.assertEqual(result, "\n> line1\n> line2\n> line3\n")
+
+    def test_format_notification_with_quoted_text(self) -> None:
+        """Verifies {quoted_text} and {quoted_preview_text} replacements."""
+        base_post: data.PostDict = {
+            "id": "post123",
+            "code": "C123",
+            "username": "testuser",
+            "display_name": "Test User",
+            "text": "line1\nline2",
+            "timestamp": 1600000000,
+            "url": "https://url",
+            "media_urls": [],
+        }
+
+        # 1. quoted_text with non-empty text
+        sub: data.SubscriptionDict = {
+            "username": "testuser",
+            "channel_id": 123,
+            "server_id": 456,
+            "message": "**{name}**:{quoted_text}{url}",
+            "mention": "",
+        }
+        result = utils.format_notification(sub, base_post, "T")
+        self.assertEqual(result, "**T**:\n> line1\n> line2\nhttps://url")
+
+        # 2. quoted_text with empty text
+        empty_post = dict(base_post, text="")
+        result = utils.format_notification(sub, empty_post, "T")
+        self.assertEqual(result, "**T**:https://url")
+
+        # 3. quoted_preview_text with non-empty text
+        sub["message"] = "**{name}**:{quoted_preview_text}{url}"
+        long_post = dict(
+            base_post,
+            text="line1\nline2\nline3\nline4",
+        )
+        result = utils.format_notification(sub, long_post, "T")
+        self.assertEqual(
+            result,
+            "**T**:\n> line1\n> line2\n> line3\n> ...\nhttps://url",
+        )
+
+        # 4. quoted_preview_text with empty text
+        result = utils.format_notification(sub, empty_post, "T")
+        self.assertEqual(result, "**T**:https://url")
 
     def test_format_notification_with_include_media(self) -> None:
         """Verifies inclusion and exclusion of media URLs."""

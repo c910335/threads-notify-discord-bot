@@ -60,8 +60,9 @@ class ThreadsCommands(commands.Cog):
     @app_commands.describe(
         username="The Threads username to subscribe to (e.g. c910335)",
         message=(
-            "Message template (supports {name}, {text}, {preview_text}, "
-            "{url}, {mention})"
+            "Message template (supports {name}, {text}, "
+            "{preview_text}, {quoted_text}, "
+            "{quoted_preview_text}, {url}, {mention})"
         ),
         mention="The role or user to notify when a new post is found",
         overwrite=(
@@ -319,8 +320,9 @@ class ThreadsCommands(commands.Cog):
     @app_commands.describe(
         post_id="The specific Threads post ID/code (e.g. DH_eOgcSUww)",
         message=(
-            "Message template (supports {name}, {text}, {preview_text}, "
-            "{url}, {mention})"
+            "Message template (supports {name}, {text}, "
+            "{preview_text}, {quoted_text}, "
+            "{quoted_preview_text}, {url}, {mention})"
         ),
         mention="The role or user to notify",
         include_media=(

@@ -26,9 +26,9 @@ NOTIFICATION_MESSAGE_TEMPLATES = [
     "{mention} {name} 有新貼文！",
     "{name} 發文囉！",
     "{mention} {name} 發布了新貼文： {url}",
-    "{mention} **{name}** 發文囉！\n>>> {text}",
-    "{mention} **{name}** 發文囉！\n>>> {preview_text}",
-    "**{name}**:\n>>> {text}",
-    "**{name}**:\n{preview_text}",
+    "{mention} **{name}** 發文囉！{text}",
+    "{mention} **{name}** 發文囉！{preview_text}",
+    "**{name}**:{quoted_text}",
+    "**{name}**:{quoted_preview_text}",
     "{text}",
 ]

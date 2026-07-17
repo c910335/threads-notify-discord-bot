@@ -85,3 +85,7 @@ class BrowserTest(unittest.IsolatedAsyncioTestCase):
                 viewport={"width": 1280, "height": 1000},
                 locale="en-US",
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

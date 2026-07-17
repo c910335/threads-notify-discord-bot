@@ -189,6 +189,7 @@ def extract_posts_from_html(html_content: str) -> list[data.PostDict]:
                     if parsed:
                         unique_posts[parsed["id"]] = parsed
         except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
+            # Ignore parsing errors from unexpected API payload structures.
             pass
 
     sorted_posts = sorted(

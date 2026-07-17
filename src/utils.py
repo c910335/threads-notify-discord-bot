@@ -71,6 +71,26 @@ def get_preview_text(text: str) -> str:
     return joined_text
 
 
+def _quote_text(text: str) -> str:
+    """Wraps text in per-line Discord blockquote markers.
+
+    Each line is prefixed with '> '. Leading and trailing
+    newlines are added so the blockquote never shares a line
+    with surrounding content.
+
+    Args:
+        text: The text to quote.
+
+    Returns:
+        The quoted text with surrounding newlines, or empty
+        string if the input is empty or whitespace-only.
+    """
+    if not text.strip():
+        return ""
+    quoted = "\n".join(f"> {line}" for line in text.splitlines())
+    return f"\n{quoted}\n"
+
+
 def format_notification(
     sub: data.SubscriptionDict, post: data.PostDict, display_name: str
 ) -> str:
@@ -94,14 +114,17 @@ def format_notification(
     if mention_str and "{mention}" not in message_template:
         message_template = f"{mention_str} {message_template}"
 
-    preview_text = get_preview_text(post.get("text") or "")
+    raw_text = post.get("text") or ""
+    preview_text = get_preview_text(raw_text)
     msg = (
         message_template.replace("{name}", display_name)
-        .replace("{text}", post.get("text") or "")
+        .replace("{quoted_text}", _quote_text(raw_text))
+        .replace("{quoted_preview_text}", _quote_text(preview_text))
+        .replace("{text}", raw_text)
         .replace("{preview_text}", preview_text)
         .replace("{url}", url)
         .replace("{mention}", mention_str)
-    )
+    ).strip()
 
     if "{url}" not in sub["message"]:
         msg = f"{url}\n{msg}"

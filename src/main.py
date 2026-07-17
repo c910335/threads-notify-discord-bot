@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Main entry point for the Threads Notification Discord Bot.
 
 This script initializes configuration, reconfigures stdout buffering to
