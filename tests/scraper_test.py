@@ -312,7 +312,7 @@ class ScraperTest(unittest.IsolatedAsyncioTestCase):
             mock_browser.new_context.assert_called_once()
             mock_page.goto.assert_called_once_with(
                 "https://www.threads.com/@tester",
-                wait_until="load",
+                wait_until="domcontentloaded",
                 timeout=30000,
             )
             mock_page.wait_for_timeout.assert_called_once_with(500)

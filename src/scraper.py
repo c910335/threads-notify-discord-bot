@@ -220,7 +220,7 @@ async def _scrape_page_and_extract_posts(
     async with await browser_inst.new_context() as context:
         page = await context.new_page()
         try:
-            await page.goto(url, wait_until="load", timeout=30000)
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
             # Intelligent Page Waiting: Wait for post elements or profile link.
             try:
